@@ -1,0 +1,848 @@
+{
+  "info": {
+    "name": "SaaS Tenancy API",
+    "description": "API collection for the SaaS Tenancy Starter application",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tenantSlug",
+      "value": "acme-corp",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/user",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{tenantSlug}}", "user"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Billing",
+      "item": [
+        {
+          "name": "Get Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/billing/subscriptions",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{tenantSlug}}", "billing", "subscriptions"]
+            }
+          }
+        },
+        {
+          "name": "Create Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan_id\": 1,\n  \"payment_method\": \"card\",\n  \"billing_cycle\": \"monthly\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/billing/subscriptions",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{tenantSlug}}", "billing", "subscriptions"]
+            }
+          }
+        },
+        {
+          "name": "Get Invoices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/billing/invoices",
+              "host": ["baseUrl}}"],
+              "path": ["{{tenantSlug}}", "billing", "invoices"]
+            }
+          }
+        },
+        {
+          "name": "Create Invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 1,\n  \"amount\": 99.99,\n  \"currency_code\": \"USD\",\n  \"due_date\": \"2026-05-12\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/billing/invoices",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{tenantSlug}}", "billing", "invoices"]
+            }
+          }
+        },
+        {
+          "name": "Get Payments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/billing/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{tenantSlug}}", "billing", "payments"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Management",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/management/notifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{tenantSlug}}", "management", "notifications"]
+            }
+          }
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/management/notifications/unread-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{tenantSlug}}", "management", "notifications", "unread-count"]
+            }
+          }
+        },
+        {
+          "name": "Get Activities",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/management/activities",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "management", "activities"]
+            }
+          }
+        },
+        {
+          "name": "Get Feature Flags",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/management/feature-flags",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "management", "feature-flags"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "Get Webhooks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/webhooks/webhooks",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{tenantSlug}}", "webhooks", "webhooks"]
+            }
+          }
+        },
+        {
+          "name": "Create Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Webhook\",\n  \"url\": \"https://example.com/webhook\",\n  \"events\": [\"subscription.created\", \"invoice.paid\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/webhooks/webhooks",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "webhooks", "webhooks"]
+            }
+          }
+        },
+        {
+          "name": "Test Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/webhooks/webhooks/1/test",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "webhooks", "webhooks", "1", "test"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usage",
+      "item": [
+        {
+          "name": "Get Usage Metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/usage/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "usage", "metrics"]
+            }
+          }
+        },
+        {
+          "name": "Create Usage Metric",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metric_type\": \"api_calls\",\n  \"metric_value\": 100,\n  \"unit\": \"count\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/usage/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "usage", "metrics"]
+            }
+          }
+        },
+        {
+          "name": "Get Usage Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/usage/metrics/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "usage", "metrics", "summary"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Get All Tenants",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/tenants",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "tenants"]
+            }
+          }
+        },
+        {
+          "name": "Create Tenant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Tenant\",\n  \"slug\": \"new-tenant\",\n  \"domain\": \"new-tenant.saas-tenancy.test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/tenants",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "tenants"]
+            }
+          }
+        },
+        {
+          "name": "Get Plans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/plans",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "plans"]
+            }
+          }
+        },
+        {
+          "name": "Create Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Enterprise\",\n  \"price_monthly\": 99.99,\n  \"price_yearly\": 999.99,\n  \"currency_code\": \"USD\",\n  \"features\": [\n    {\"name\": \"Unlimited API calls\", \"limit\": null},\n    {\"name\": \"100GB storage\", \"limit\": 107374182400}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/plans",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "plans"]
+            }
+          }
+        },
+        {
+          "name": "Get Vouchers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/vouchers",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "vouchers"]
+            }
+          }
+        },
+        {
+          "name": "Generate Voucher",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"percentage\",\n  \"value\": 20,\n  \"quantity\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/vouchers/bulk-generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "vouchers", "bulk-generate"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "GDPR",
+      "item": [
+        {
+          "name": "Export User Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/gdpr/export-user-data",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "gdpr", "export-user-data"]
+            }
+          }
+        },
+        {
+          "name": "Request Data Deletion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/gdpr/request-deletion",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "gdpr", "request-deletion"]
+            }
+          }
+        },
+        {
+          "name": "Get Consent Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/gdpr/consent-status",
+              "host": ["baseUrl}}"],
+              "path": ["tenantSlug}}", "gdpr", "consent-status"]
+            }
+          },
+        {
+          "name": "Update Consent",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marketing_consent\": true,\n  \"analytics_consent\": true,\n  \"cookies_consent\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/gdpr/consent",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "gdpr", "consent"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Export/Import",
+      "item": [
+        {
+          "name": "Get Exports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/export/exports",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "export", "exports"]
+            }
+          }
+        },
+        {
+          "name": "Create Export",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entity_type\": \"users\",\n  \"format\": \"json\",\n  \"filters\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/export/exports",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "export", "exports"]
+            }
+          }
+        },
+        {
+          "name": "Validate Import",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "entity_type",
+                  "value": "users",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/import/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "import", "validate"]
+            }
+          }
+        },
+        {
+          "name": "Preview Import",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/import/preview",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "import", "preview"]
+            }
+          }
+        },
+        {
+          "name": "Get Import Templates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/import/templates",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "import", "templates"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Get Custom Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/reports/custom-reports",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "reports", "custom-reports"]
+            }
+          }
+        },
+        {
+          "name": "Create Custom Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Monthly Revenue\",\n  \"description\": \"Revenue by month\",\n  \"config\": {\n    \"table\": \"invoices\",\n    \"columns\": [\"id\", \"amount\", \"status\", \"paid_at\"],\n    \"filters\": [{\"field\": \"status\", \"operator\": \"=\", \"value\": \"paid\"}],\n    \"sort\": {\"field\": \"paid_at\", \"direction\": \"desc\"}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/reports/custom-reports",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "reports", "custom-reports"]
+            }
+          }
+        },
+        {
+          "name": "Run Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/reports/custom-reports/1/run",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "reports", "custom-reports", "1", "run"]
+            }
+          }
+        },
+        {
+          "name": "Get Scheduled Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{tenantSlug}}/reports/scheduled-reports",
+              "host": ["{{baseUrl}}"],
+              "path": ["tenantSlug}}", "reports", "scheduled-reports"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
