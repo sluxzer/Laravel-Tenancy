@@ -19,7 +19,7 @@ use Stancl\Tenancy\Middleware;
 */
 
 Route::middleware([
-    'web',
+    'api',
     Middleware\InitializeTenancyByDomain::class,
     Middleware\PreventAccessFromUnwantedDomains::class,
     Middleware\ScopeSessions::class,

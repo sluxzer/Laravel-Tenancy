@@ -28,7 +28,8 @@ return [
      * Configuration for the models used by Tenancy.
      */
     'models' => [
-        'tenant' => Stancl\Tenancy\Database\Models\Tenant::class,
+        // 'tenant' => Stancl\Tenancy\Database\Models\Tenant::class,
+        'tenant' => App\Models\Tenant::class,
         'domain' => Stancl\Tenancy\Database\Models\Domain::class,
         'impersonation_token' => Stancl\Tenancy\Database\Models\ImpersonationToken::class,
 
@@ -421,7 +422,7 @@ return [
      * understand which ones you want to enable.
      */
     'features' => [
-        // Stancl\Tenancy\Features\UserImpersonation::class,
+        Stancl\Tenancy\Features\UserImpersonation::class,
         // Stancl\Tenancy\Features\TelescopeTags::class,
         // Stancl\Tenancy\Features\CrossDomainRedirect::class,
         // Stancl\Tenancy\Features\ViteBundler::class,

@@ -45,8 +45,8 @@ class TenancyServiceProvider extends ServiceProvider
                 JobPipeline::make([
                     Jobs\CreateDatabase::class,
                     Jobs\MigrateDatabase::class,
-                    // Jobs\SeedDatabase::class,
-                    // Jobs\CreateStorageSymlinks::class,
+                    Jobs\SeedDatabase::class,
+                    Jobs\CreateStorageSymlinks::class,
 
                     // Your own jobs to prepare the tenant.
                     // Provision API keys, create S3 buckets, anything you want!
@@ -54,7 +54,7 @@ class TenancyServiceProvider extends ServiceProvider
                     return $event->tenant;
                 })->shouldBeQueued(false),
 
-                // Listeners\CreateTenantStorage::class,
+                Listeners\CreateTenantStorage::class,
             ],
             Events\SavingTenant::class => [],
             Events\TenantSaved::class => [],
@@ -63,12 +63,12 @@ class TenancyServiceProvider extends ServiceProvider
             Events\DeletingTenant::class => [
                 JobPipeline::make([
                     Jobs\DeleteDomains::class,
-                    // Jobs\RemoveStorageSymlinks::class,
+                    Jobs\RemoveStorageSymlinks::class,
                 ])->send(function (Events\DeletingTenant $event) {
                     return $event->tenant;
                 })->shouldBeQueued(false),
 
-                // Listeners\DeleteTenantStorage::class,
+                Listeners\DeleteTenantStorage::class,
             ],
             Events\TenantDeleted::class => [
                 JobPipeline::make([
@@ -77,7 +77,7 @@ class TenancyServiceProvider extends ServiceProvider
                     return $event->tenant;
                 })->shouldBeQueued(false),
 
-                // ResourceSyncing\Listeners\DeleteAllTenantMappings::class,
+                ResourceSyncing\Listeners\DeleteAllTenantMappings::class,
             ],
 
             Events\TenantMaintenanceModeEnabled::class => [],
@@ -192,7 +192,7 @@ class TenancyServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->bootEvents();
-        $this->mapRoutes();
+        // $this->mapRoutes();
 
         $this->makeTenancyMiddlewareHighestPriority();
         $this->overrideUrlInTenantContext();
