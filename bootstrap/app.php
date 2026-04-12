@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\CheckPermission;
+use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -7,8 +9,8 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Support\Facades\Route;
-use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
-use Stancl\Tenancy\Middleware\PreventAccessFromUnwantedDomains;
+use Stancl\Tenancy\Middleware\InitializeTenancyByPath;
+use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -26,8 +28,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
             Route::middleware([
                 'tenant',
-                // InitializeTenancyByDomain::class,
-                // PreventAccessFromUnwantedDomains::class
+                InitializeTenancyByPath::class,
+                PreventAccessFromCentralDomains::class,
             ])->group(function () {
                 Route::middleware('web')->group(base_path('routes/tenant/web.php'));
                 Route::middleware('api')->group(base_path('routes/tenant/api.php'));
@@ -42,6 +44,8 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        $middleware->alias(['role' => CheckRole::class, 'permission' => CheckPermission::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

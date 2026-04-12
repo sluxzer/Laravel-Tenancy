@@ -127,4 +127,25 @@ return [
 
     'serializable_classes' => false,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Query Cache Settings
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for query caching functionality.
+    |
+    */
+
+    'query' => [
+        'enabled' => env('QUERY_CACHE_ENABLED', true),
+        'default_ttl' => env('QUERY_CACHE_TTL', 3600),
+        'prefix' => env('QUERY_CACHE_PREFIX', 'query_cache'),
+        'use_tags' => env('QUERY_CACHE_USE_TAGS', true),
+        'invalidate_on_model_events' => env('QUERY_CACHE_INVALIDATE_ON_EVENTS', true),
+        'warmup' => [
+            'enabled' => env('QUERY_CACHE_WARMUP_ENABLED', false),
+            'queries' => [],
+        ],
+    ],
+
 ];

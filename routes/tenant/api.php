@@ -2,33 +2,22 @@
 
 declare(strict_types=1);
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
-use Stancl\Tenancy\Middleware;
 
-/*
-|--------------------------------------------------------------------------
-| Tenant Routes
-|--------------------------------------------------------------------------
-|
-| Here you can register the tenant routes for your application.
-| These routes are loaded by the TenantRouteServiceProvider.
-|
-| Feel free to customize them however you want. Good luck!
-|
-*/
+Route::prefix('{tenant}')->middleware('tenancy.path')->group(function () {
+    // Health check
+    Route::get('/health', function () {
+        return response()->json([
+            'status' => 'ok',
+            'timestamp' => now()->toIso8601String(),
+        ]);
+    });
 
-Route::middleware([
-    'api',
-    Middleware\InitializeTenancyByDomain::class,
-    Middleware\PreventAccessFromUnwantedDomains::class,
-    Middleware\ScopeSessions::class,
-])->group(function () {
+    // Tenant info
     Route::get('/', function () {
-            dd(DB::connection()->getDatabaseName());
-
-            // dd(\App\Models\User::first()->email);
-
-        return 'This is your multi-tenant application. The id of the current tenant is ' . tenant('id') . "\n";
+        return response()->json([
+            'tenant_id' => tenant('id'),
+            'message' => 'Tenant accessed successfully',
+        ]);
     });
 });
