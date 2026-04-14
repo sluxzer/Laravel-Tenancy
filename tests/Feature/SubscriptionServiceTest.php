@@ -45,6 +45,15 @@ it('can create a new subscription', function () {
 
     $subscriptionRepo->shouldReceive('create')
         ->once()
+        ->with(Mockery::on(function ($data) {
+            return $data['tenant_id'] === 1 &&
+                $data['plan_id'] === 1 &&
+                $data['status'] === 'active' &&
+                $data['metadata']['billing_cycle'] === 'monthly' &&
+                $data['metadata']['custom_field'] === 'value' &&
+                isset($data['starts_at']) &&
+                isset($data['ends_at']);
+        }))
         ->andReturn($subscription);
 
     $service = new SubscriptionService($subscriptionRepo, $planRepo, $voucherRepo);
@@ -78,6 +87,44 @@ it('throws exception when creating subscription for tenant with active subscript
 
     $service->create($tenant, $plan, 'monthly');
 })->throws(SubscriptionException::class, 'User already has an active subscription');
+
+it('can create a subscription with yearly billing cycle', function () {
+    $plan = Plan::factory()->make(['id' => 1, 'is_active' => true, 'price_monthly' => 29.99]);
+
+    $subscriptionRepo = mock(SubscriptionRepositoryInterface::class);
+    $planRepo = mock(PlanRepositoryInterface::class);
+    $voucherRepo = mock(VoucherRepositoryInterface::class);
+
+    $subscription = Subscription::factory()->make([
+        'id' => 1,
+        'plan_id' => 1,
+        'status' => 'active',
+    ]);
+
+    $subscriptionRepo->shouldReceive('getActiveForTenant')
+        ->once()
+        ->andReturn(new Collection);
+
+    $subscriptionRepo->shouldReceive('create')
+        ->once()
+        ->with(Mockery::on(function ($data) {
+            return $data['tenant_id'] === 1 &&
+                $data['plan_id'] === 1 &&
+                $data['status'] === 'active' &&
+                $data['metadata']['billing_cycle'] === 'yearly' &&
+                isset($data['starts_at']) &&
+                isset($data['ends_at']);
+        }))
+        ->andReturn($subscription);
+
+    $service = new SubscriptionService($subscriptionRepo, $planRepo, $voucherRepo);
+
+    $tenant = new Tenant(['id' => 1, 'name' => 'Test Tenant']);
+
+    $result = $service->create($tenant, $plan, 'yearly');
+
+    expect($result)->toBeInstanceOf(Subscription::class);
+});
 
 it('throws exception when creating subscription with inactive plan', function () {
     $plan = Plan::factory()->make(['id' => 1, 'is_active' => false]);
@@ -117,6 +164,16 @@ it('can upgrade a subscription to higher plan', function () {
 
     $subscriptionRepo->shouldReceive('update')
         ->once()
+        ->with(
+            Mockery::type(Subscription::class),
+            Mockery::on(function ($data) {
+                return $data['plan_id'] === 2 &&
+                    isset($data['metadata']) &&
+                    isset($data['metadata']['previous_plan_id']) &&
+                    $data['metadata']['previous_plan_id'] === 1 &&
+                    isset($data['metadata']['upgrade_date']);
+            })
+        )
         ->andReturn(true);
 
     $service = new SubscriptionService($subscriptionRepo, $planRepo, $voucherRepo);
@@ -124,6 +181,7 @@ it('can upgrade a subscription to higher plan', function () {
     $result = $service->upgrade($subscription, $newPlan);
 
     expect($result)->toBeInstanceOf(Subscription::class);
+    expect($result->plan_id)->toBe(2);
 });
 
 it('throws exception when upgrading to lower-priced plan', function () {
@@ -191,6 +249,18 @@ it('can downgrade a subscription to lower plan', function () {
 
     $subscriptionRepo->shouldReceive('update')
         ->once()
+        ->with(
+            Mockery::type(Subscription::class),
+            Mockery::on(function ($data) {
+                return isset($data['metadata']) &&
+                    isset($data['metadata']['previous_plan_id']) &&
+                    $data['metadata']['previous_plan_id'] === 1 &&
+                    isset($data['metadata']['pending_plan_id']) &&
+                    $data['metadata']['pending_plan_id'] === 2 &&
+                    isset($data['metadata']['downgrade_date']) &&
+                    isset($data['metadata']['downgrade_effective_at']);
+            })
+        )
         ->andReturn(true);
 
     $service = new SubscriptionService($subscriptionRepo, $planRepo, $voucherRepo);
@@ -198,6 +268,7 @@ it('can downgrade a subscription to lower plan', function () {
     $result = $service->downgrade($subscription, $newPlan);
 
     expect($result)->toBeInstanceOf(Subscription::class);
+    expect($result->metadata['pending_plan_id'])->toBe(2);
 });
 
 it('throws exception when downgrading to higher-priced plan', function () {
@@ -462,7 +533,10 @@ it('can apply voucher to subscription', function () {
     $service = new SubscriptionService($subscriptionRepo, $planRepo, $voucherRepo);
 
     $service->applyVoucher($subscription, $voucher);
-})->throwsNoExceptions();
+
+    // If we get here, no exception was thrown
+    expect(true)->toBeTrue();
+});
 
 it('throws exception when applying expired voucher', function () {
     $plan = Plan::factory()->make(['id' => 1]);
@@ -618,49 +692,3 @@ it('throws exception when applying already used voucher', function () {
 
     $service->applyVoucher($subscription, $voucher);
 })->throws(VoucherException::class, 'You have already used this voucher');
-
-it('can check if subscription is active', function () {
-    $activeSubscription = Subscription::factory()->make([
-        'id' => 1,
-        'status' => 'active',
-        'ends_at' => now()->addMonth(),
-    ]);
-
-    $expiredSubscription = Subscription::factory()->make([
-        'id' => 2,
-        'status' => 'active',
-        'ends_at' => now()->subDay(),
-    ]);
-
-    $subscriptionRepo = mock(SubscriptionRepositoryInterface::class);
-    $planRepo = mock(PlanRepositoryInterface::class);
-    $voucherRepo = mock(VoucherRepositoryInterface::class);
-
-    $service = new SubscriptionService($subscriptionRepo, $planRepo, $voucherRepo);
-
-    expect($service->isActive($activeSubscription))->toBeTrue();
-    expect($service->isActive($expiredSubscription))->toBeFalse();
-});
-
-it('can check if subscription is in grace period', function () {
-    $inGracePeriod = Subscription::factory()->make([
-        'id' => 1,
-        'status' => 'past_due',
-        'grace_period_ends_at' => now()->addDays(3),
-    ]);
-
-    $notInGracePeriod = Subscription::factory()->make([
-        'id' => 2,
-        'status' => 'past_due',
-        'grace_period_ends_at' => now()->subDay(),
-    ]);
-
-    $subscriptionRepo = mock(SubscriptionRepositoryInterface::class);
-    $planRepo = mock(PlanRepositoryInterface::class);
-    $voucherRepo = mock(VoucherRepositoryInterface::class);
-
-    $service = new SubscriptionService($subscriptionRepo, $planRepo, $voucherRepo);
-
-    expect($service->isInGracePeriod($inGracePeriod))->toBeTrue();
-    expect($service->isInGracePeriod($notInGracePeriod))->toBeFalse();
-});

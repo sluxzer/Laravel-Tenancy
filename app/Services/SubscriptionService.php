@@ -76,7 +76,7 @@ class SubscriptionService implements SubscriptionServiceInterface
             $endDate = $startDate->copy()->addYear();
         }
 
-        return DB::transaction(function () use ($tenant, $plan, $userId, $metadata, $startDate, $endDate) {
+        return DB::transaction(function () use ($tenant, $plan, $billingCycle, $userId, $metadata, $startDate, $endDate) {
             $data = [
                 'tenant_id' => $tenant->id,
                 'user_id' => $userId,
@@ -85,7 +85,7 @@ class SubscriptionService implements SubscriptionServiceInterface
                 'starts_at' => $startDate,
                 'ends_at' => $endDate,
                 'metadata' => array_merge($metadata, [
-                    'billing_cycle' => 'monthly',
+                    'billing_cycle' => $billingCycle,
                     'original_plan_id' => $plan->id,
                 ]),
             ];
@@ -175,13 +175,14 @@ class SubscriptionService implements SubscriptionServiceInterface
             throw SubscriptionException::cannotCancel('Cannot downgrade to a higher-priced plan. Use upgrade instead.');
         }
 
-        return DB::transaction(function () use ($subscription, $currentPlan) {
+        return DB::transaction(function () use ($subscription, $currentPlan, $newPlan) {
             $metadata = $subscription->metadata ?? [];
             $metadata['previous_plan_id'] = $currentPlan->id;
+            $metadata['pending_plan_id'] = $newPlan->id;
             $metadata['downgrade_date'] = now()->toIso8601String();
             $metadata['downgrade_effective_at'] = $subscription->ends_at?->toIso8601String();
 
-            // Downgrade takes effect at next billing cycle
+            // Downgrade takes effect at next billing cycle - store pending plan in metadata
             $this->subscriptionRepository->update($subscription, [
                 'metadata' => $metadata,
             ]);
@@ -353,7 +354,7 @@ class SubscriptionService implements SubscriptionServiceInterface
     /**
      * Check if subscription is active.
      */
-    public function isActive(Subscription $subscription): bool
+    protected function isActive(Subscription $subscription): bool
     {
         return $subscription->status === 'active' &&
             ($subscription->ends_at === null || $subscription->ends_at->isFuture());
@@ -362,7 +363,7 @@ class SubscriptionService implements SubscriptionServiceInterface
     /**
      * Check if subscription is within grace period.
      */
-    public function isInGracePeriod(Subscription $subscription): bool
+    protected function isInGracePeriod(Subscription $subscription): bool
     {
         return $subscription->grace_period_ends_at !== null &&
             $subscription->grace_period_ends_at->isFuture();
