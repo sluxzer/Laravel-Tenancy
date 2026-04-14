@@ -19,13 +19,11 @@ class SubscriptionFactory extends Factory
             'user_id' => User::factory(),
             'plan_id' => Plan::factory(),
             'status' => fake()->randomElement(['active', 'past_due', 'cancelled', 'expired', 'paused']),
-            'billing_cycle' => fake()->randomElement(['monthly', 'yearly', 'quarterly']),
-            'current_period_start' => fake()->dateTimeBetween('-1 month', 'now'),
-            'current_period_end' => fake()->dateTimeBetween('now', '+1 month'),
+            'starts_at' => fake()->dateTimeBetween('-1 month', 'now'),
+            'ends_at' => fake()->dateTimeBetween('now', '+1 month'),
             'trial_ends_at' => fake()->optional(0.7)->dateTimeBetween('now', '+14 days'),
-            'cancels_at' => fake()->optional(0.1)->dateTimeBetween('+1 month', '+3 months'),
-            'ends_at' => fake()->optional(0.1)->dateTimeBetween('+1 month', '+3 months'),
-            'stripe_subscription_id' => fake()->optional()->uuid(),
+            'cancelled_at' => fake()->optional(0.1)->dateTimeBetween('now', '+1 month'),
+            'grace_period_ends_at' => fake()->optional(0.1)->dateTimeBetween('+1 month', '+3 months'),
             'metadata' => [],
         ];
     }
@@ -34,8 +32,8 @@ class SubscriptionFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'active',
-            'cancels_at' => null,
-            'ends_at' => null,
+            'cancelled_at' => null,
+            'ends_at' => now()->addMonth(),
         ]);
     }
 
@@ -43,7 +41,7 @@ class SubscriptionFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'cancelled',
-            'cancels_at' => now(),
+            'cancelled_at' => now(),
             'ends_at' => now()->addMonth(),
         ]);
     }
@@ -52,24 +50,6 @@ class SubscriptionFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'past_due',
-        ]);
-    }
-
-    public function monthly(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'billing_cycle' => 'monthly',
-            'current_period_start' => now()->startOfMonth(),
-            'current_period_end' => now()->endOfMonth(),
-        ]);
-    }
-
-    public function yearly(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'billing_cycle' => 'yearly',
-            'current_period_start' => now()->startOfYear(),
-            'current_period_end' => now()->endOfYear(),
         ]);
     }
 }
