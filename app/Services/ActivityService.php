@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\Activity;
 use App\Models\Tenant;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -16,6 +17,18 @@ use Illuminate\Database\Eloquent\Collection;
  */
 class ActivityService
 {
+    /**
+     * Log an activity (alias for logActivity).
+     */
+    public function log(User $user, string $type, string $description, array $data = []): Activity
+    {
+        return $this->logActivity(array_merge($data, [
+            'user_id' => $user->id,
+            'type' => $type,
+            'description' => $description,
+        ]));
+    }
+
     /**
      * Log an activity.
      */

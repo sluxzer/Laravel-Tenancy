@@ -1,10 +1,10 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasFactory;
-use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Plan extends Model
@@ -12,20 +12,20 @@ class Plan extends Model
     use HasFactory;
 
     protected $fillable = [
-        "name",
-        "slug",
-        "description",
-        "price_monthly",
-        "price_yearly",
-        "features",
-        "max_users",
-        "max_storage_mb",
-        "is_active",
-        "sort_order",
+        'name',
+        'slug',
+        'description',
+        'price_monthly',
+        'price_yearly',
+        'features',
+        'max_users',
+        'max_storage_mb',
+        'is_active',
+        'sort_order',
     ];
 
     protected $casts = [
-        "features" => "array",
+        'features' => 'array',
     ];
 
     public function subscriptions(): HasMany
@@ -38,4 +38,3 @@ class Plan extends Model
         return $this->hasMany(Voucher::class);
     }
 }
-

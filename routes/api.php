@@ -67,12 +67,12 @@ Route::middleware('api')->group(function () {
     | Authentication Routes
     |--------------------------------------------------------------------------
     */
-    Route::post('/auth/register', [TenantAuthController::class, 'register']);
-    Route::post('/auth/login', [AuthenticatedSessionController::class, 'store']);
+    Route::middleware(['throttle:5,1'])->post('/auth/register', [TenantAuthController::class, 'register']);
+    Route::middleware(['throttle:5,1'])->post('/auth/login', [AuthenticatedSessionController::class, 'store']);
     Route::post('/auth/logout', [AuthenticatedSessionController::class, 'destroy'])->middleware('auth:sanctum');
-    Route::post('/auth/forgot-password', [PasswordResetLinkController::class, 'store']);
-    Route::post('/auth/reset-password', [NewPasswordController::class, 'store']);
-    Route::post('/auth/verify-email', [EmailVerificationNotificationController::class, 'store']);
+    Route::middleware(['throttle:3,1'])->post('/auth/forgot-password', [PasswordResetLinkController::class, 'store']);
+    Route::middleware(['throttle:3,1'])->post('/auth/reset-password', [NewPasswordController::class, 'store']);
+    Route::middleware(['throttle:5,1'])->post('/auth/verify-email', [EmailVerificationNotificationController::class, 'store']);
     Route::post('/auth/confirm-password', [ConfirmedPasswordStatusController::class, 'show']);
 
     // Two-factor authentication
@@ -142,11 +142,11 @@ Route::middleware('api')->group(function () {
             });
 
             Route::prefix('auth')->group(function () {
-                Route::post('/register', [TenantAuthController::class, 'register']);
-                Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+                Route::middleware(['throttle:5,1'])->post('/register', [TenantAuthController::class, 'register']);
+                Route::middleware(['throttle:5,1'])->post('/login', [AuthenticatedSessionController::class, 'store']);
                 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->middleware('auth:sanctum');
-                Route::post('/forgot-password', [PasswordResetLinkController::class, 'store']);
-                Route::post('/reset-password', [NewPasswordController::class, 'store']);
+                Route::middleware(['throttle:3,1'])->post('/forgot-password', [PasswordResetLinkController::class, 'store']);
+                Route::middleware(['throttle:3,1'])->post('/reset-password', [NewPasswordController::class, 'store']);
             });
         });
 

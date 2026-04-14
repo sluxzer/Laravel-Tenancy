@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Events\Listeners;
 
 use App\Events\NotificationRead;
+use App\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Notification Read Listener
@@ -20,9 +20,9 @@ class NotificationReadListener implements ShouldQueue
     public function handle(NotificationRead $event): void
     {
         $notification = $event->notification;
-        $user = \App\Models\User::find($event->userId);
+        $user = User::find($event->userId);
 
-        if (!$user) {
+        if (! $user) {
             return;
         }
 

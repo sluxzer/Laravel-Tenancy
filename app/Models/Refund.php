@@ -1,33 +1,32 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasFactory;
-use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Carbon\CarbonImmutable;
 
 class Refund extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        "tenant_id",
-        "user_id",
-        "transaction_id",
-        "invoice_id",
-        "amount",
-        "currency",
-        "reason",
-        "status",
-        "processed_at",
-        "admin_notes",
+        'tenant_id',
+        'user_id',
+        'transaction_id',
+        'invoice_id',
+        'amount',
+        'currency',
+        'reason',
+        'status',
+        'processed_at',
+        'admin_notes',
     ];
 
     protected $casts = [
-        "processed_at" => "datetime",
-        "status" => "string",
+        'processed_at' => 'datetime',
+        'status' => 'string',
     ];
 
     public function tenant(): BelongsTo
@@ -55,4 +54,3 @@ class Refund extends Model
         return $this->belongsTo(User::class);
     }
 }
-

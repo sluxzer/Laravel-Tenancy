@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Events\Listeners;
 
 use App\Events\WebhookDelivered;
-use App\Models\WebhookEvent;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
 
@@ -24,7 +23,7 @@ class WebhookDeliveredListener implements ShouldQueue
         $webhook = $webhookEvent->webhook;
         $tenant = tenancy()->tenant;
 
-        if (!$webhook || !$tenant) {
+        if (! $webhook || ! $tenant) {
             return;
         }
 

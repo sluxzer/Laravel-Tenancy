@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Events\Listeners;
 
 use App\Events\WebhookFailed;
-use App\Models\WebhookEvent;
 use App\Services\WebhookService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
@@ -25,7 +24,7 @@ class WebhookFailedListener implements ShouldQueue
         $webhook = $webhookEvent->webhook;
         $tenant = tenancy()->tenant;
 
-        if (!$webhook || !$tenant) {
+        if (! $webhook || ! $tenant) {
             return;
         }
 
@@ -36,7 +35,7 @@ class WebhookFailedListener implements ShouldQueue
             'retry_count' => ($webhookEvent->retry_count ?? 0) + 1,
         ]);
 
-        $webhookService = app(\App\Services\WebhookService::class);
+        $webhookService = app(WebhookService::class);
         $webhookService->logFailure($webhook, $webhookEvent, 'Webhook delivery failed: '.$webhookEvent->errorMessage);
 
         Log::error("Webhook {$webhook->id} failed to deliver: {$webhook->url}. Retry {$webhookEvent->retry_count}");

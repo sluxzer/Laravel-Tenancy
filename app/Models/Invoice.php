@@ -1,39 +1,38 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasFactory;
-use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Carbon\CarbonImmutable;
 
 class Invoice extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        "number",
-        "tenant_id",
-        "user_id",
-        "subscription_id",
-        "subtotal",
-        "tax_amount",
-        "discount_amount",
-        "total_amount",
-        "currency",
-        "status",
-        "due_date",
-        "paid_at",
-        "cancelled_at",
-        "notes",
+        'number',
+        'tenant_id',
+        'user_id',
+        'subscription_id',
+        'subtotal',
+        'tax_amount',
+        'discount_amount',
+        'total_amount',
+        'currency',
+        'status',
+        'due_date',
+        'paid_at',
+        'cancelled_at',
+        'notes',
     ];
 
     protected $casts = [
-        "due_date" => "datetime",
-        "paid_at" => "datetime",
-        "cancelled_at" => "datetime",
+        'due_date' => 'datetime',
+        'paid_at' => 'datetime',
+        'cancelled_at' => 'datetime',
     ];
 
     public function tenant(): BelongsTo
@@ -61,4 +60,3 @@ class Invoice extends Model
         return $this->hasMany(Transaction::class);
     }
 }
-

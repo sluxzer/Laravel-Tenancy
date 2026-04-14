@@ -14,11 +14,11 @@ trait WithQueryCache
     protected static function bootWithQueryCache(): void
     {
         static::saved(function ($model) {
-            self::getQueryCacheService()->forgetPattern(get_class($model).':*');
+            self::getQueryCacheService()->invalidatePattern(get_class($model).':*');
         });
 
         static::deleted(function ($model) {
-            self::getQueryCacheService()->forgetPattern(get_class($model).':*');
+            self::getQueryCacheService()->invalidatePattern(get_class($model).':*');
         });
     }
 
@@ -29,6 +29,6 @@ trait WithQueryCache
 
     public function scopeCache(Builder $query, string $key, ?int $ttl = null): mixed
     {
-        return self::getQueryCacheService()->cacheBuilder($query, $key, $ttl);
+        return self::getQueryCacheService()->cache($query, $key, $ttl);
     }
 }

@@ -1,34 +1,33 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasFactory;
-use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Carbon\CarbonImmutable;
 
 class ManualPayment extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        "tenant_id",
-        "user_id",
-        "invoice_id",
-        "method",
-        "reference",
-        "amount",
-        "currency",
-        "status",
-        "notes",
-        "processed_at",
-        "processed_by",
+        'tenant_id',
+        'user_id',
+        'invoice_id',
+        'method',
+        'reference',
+        'amount',
+        'currency',
+        'status',
+        'notes',
+        'processed_at',
+        'processed_by',
     ];
 
     protected $casts = [
-        "processed_at" => "datetime",
-        "status" => "string",
+        'processed_at' => 'datetime',
+        'status' => 'string',
     ];
 
     public function tenant(): BelongsTo
@@ -51,4 +50,3 @@ class ManualPayment extends Model
         return $this->belongsTo(User::class);
     }
 }
-

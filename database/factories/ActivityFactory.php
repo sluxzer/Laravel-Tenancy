@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Activity;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -13,52 +14,38 @@ class ActivityFactory extends Factory
 {
     public function definition(): array
     {
-        $events = [
-            'user.login',
-            'user.logout',
-            'user.profile.updated',
-            'user.password.changed',
-            'subscription.created',
-            'subscription.upgraded',
-            'subscription.downgraded',
-            'subscription.cancelled',
-            'invoice.paid',
-            'invoice.created',
-            'payment.processed',
-            'payment.failed',
-            'admin.tenant.created',
-            'admin.tenant.suspended',
-        ];
-
         return [
-            'tenant_id' => fake()->numberBetween(1, 10),
-            'causer_type' => User::class,
-            'causer_id' => User::factory(),
-            'subject_type' => fake()->randomElement([User::class, Subscription::class, Invoice::class]),
-            'subject_id' => fake()->numberBetween(1, 100),
+            'tenant_id' => Tenant::factory(),
+            'user_id' => User::factory(),
+            'type' => fake()->randomElement(['user.login', 'user.logout', 'subscription.created', 'payment.processed']),
             'description' => fake()->sentence(),
-            'event' => fake()->randomElement($events),
-            'properties' => [
-                'ip_address' => fake()->ipv4(),
-                'user_agent' => fake()->userAgent(),
-                'metadata' => fake()->randomElement(['key' => 'value']),
-            ],
-            'batch_uuid' => fake()->optional()->uuid(),
+            'ip_address' => fake()->ipv4(),
+            'user_agent' => fake()->userAgent(),
+            'metadata' => [],
+            'created_at' => fake()->dateTime(),
         ];
     }
 
     public function login(): static
     {
         return $this->state(fn (array $attributes) => [
-            'event' => 'user.login',
+            'type' => 'user.login',
             'description' => 'User logged in',
+        ]);
+    }
+
+    public function logout(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => 'user.logout',
+            'description' => 'User logged out',
         ]);
     }
 
     public function subscriptionCreated(): static
     {
         return $this->state(fn (array $attributes) => [
-            'event' => 'subscription.created',
+            'type' => 'subscription.created',
             'description' => 'New subscription created',
         ]);
     }
@@ -66,15 +53,17 @@ class ActivityFactory extends Factory
     public function paymentFailed(): static
     {
         return $this->state(fn (array $attributes) => [
-            'event' => 'payment.failed',
+            'type' => 'payment.failed',
             'description' => 'Payment processing failed',
         ]);
     }
 
-    public function forUser(int $userId): static
+    public function forUser(int|User $user): static
     {
+        $userId = $user instanceof User ? $user->id : $user;
+
         return $this->state(fn (array $attributes) => [
-            'causer_id' => $userId,
+            'user_id' => $userId,
         ]);
     }
 }

@@ -1,32 +1,31 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasFactory;
-use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Carbon\CarbonImmutable;
 
 class CustomReport extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        "tenant_id",
-        "user_id",
-        "name",
-        "description",
-        "query",
-        "parameters",
-        "status",
-        "report_template_id",
+        'tenant_id',
+        'user_id',
+        'name',
+        'description',
+        'query',
+        'parameters',
+        'status',
+        'report_template_id',
     ];
 
     protected $casts = [
-        "parameters" => "array",
-        "status" => "string",
+        'parameters' => 'array',
+        'status' => 'string',
     ];
 
     public function tenant(): BelongsTo
@@ -49,4 +48,3 @@ class CustomReport extends Model
         return $this->hasMany(ReportRun::class);
     }
 }
-

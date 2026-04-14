@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Events\Listeners;
 
 use App\Events\SubscriptionCreated;
+use App\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -20,8 +21,8 @@ class SendSubscriptionNotificationListener implements ShouldQueue
 
     public function handle(SubscriptionCreated $event): void
     {
-        $user = \App\Models\User::find($event->userId);
-        if (!$user) {
+        $user = User::find($event->userId);
+        if (! $user) {
             return;
         }
 
@@ -30,7 +31,7 @@ class SendSubscriptionNotificationListener implements ShouldQueue
         try {
             Notification::route(
                 $user->email,
-                "mail.subscription_activated",
+                'mail.subscription_activated',
                 $message
             );
 

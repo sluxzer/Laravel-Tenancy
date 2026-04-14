@@ -8,7 +8,6 @@ use App\Events\CheckSubscriptionExpiryJobCompleted;
 use App\Models\Subscription;
 use App\Services\NotificationService;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Subscription Expiry Listener
@@ -23,14 +22,14 @@ class SubscriptionExpiryListener implements ShouldQueue
     {
         $subscription = $event->subscription;
 
-        if (!$subscription) {
+        if (! $subscription) {
             return;
         }
 
-        $notificationService = app(\App\Services\NotificationService::class);
+        $notificationService = app(NotificationService::class);
         $notificationService->send($subscription, [
             'days_remaining' => $event->daysRemaining,
-        'expires_at' => $subscription->current_period_end,
+            'expires_at' => $subscription->current_period_end,
         ]);
 
         $this->info("Subscription expiry notification sent for subscription {$subscription->id}");

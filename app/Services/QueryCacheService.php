@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Log;
  */
 class QueryCacheService
 {
-    protected string $defaultTtl = 3600; // 1 hour
+    protected int $defaultTtl = 3600; // 1 hour
 
     protected string $prefix = 'query_cache';
 

@@ -7,17 +7,14 @@ namespace App\Models;
 use App\Traits\WithEagerLoading;
 use App\Traits\WithQueryCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
-use Stancl\Tenancy\Database\Concerns\HasDatabase;
-use Stancl\Tenancy\Database\Concerns\HasDomains;
-use Stancl\Tenancy\Database\Concerns\MaintenanceMode;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Stancl\Tenancy\Database\Contracts\TenantWithDatabase;
+use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 
 class Tenant extends BaseTenant implements TenantWithDatabase
 {
-    use HasDatabase, HasDomains, MaintenanceMode, HasFactory, WithEagerLoading, WithQueryCache;
+    use HasDatabase, HasDomains, HasFactory, MaintenanceMode, WithEagerLoading, WithQueryCache;
 
     /**
      * The attributes that are mass assignable.
@@ -114,25 +111,9 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
-     * Get the tenant's key name.
-     */
-    public function getTenantKeyName(): string
-    {
-        return $this->getKeyName();
-    }
-
-    /**
-     * Get the tenant's key.
-     */
-    public function getTenantKey()
-    {
-        return $this->getKey();
-    }
-
-    /**
      * Get value of an internal key.
      */
-    public function getInternal(string $key)
+    public function getInternal(string $key): mixed
     {
         return $this->getAttribute($key);
     }
@@ -140,15 +121,17 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     /**
      * Set value of an internal key.
      */
-    public function setInternal(string $key, $value): void
+    public function setInternal(string $key, mixed $value): static
     {
         $this->setAttribute($key, $value);
+
+        return $this;
     }
 
     /**
      * Run a callback in this tenant's environment.
      */
-    public function run(callable $callback)
+    public function run(callable $callback): static
     {
         return tenancy()->run($this, $callback);
     }

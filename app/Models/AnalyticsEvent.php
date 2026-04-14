@@ -1,27 +1,26 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasFactory;
-use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Carbon\CarbonImmutable;
 
 class AnalyticsEvent extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        "tenant_id",
-        "user_id",
-        "event_name",
-        "properties",
-        "occurred_at",
+        'tenant_id',
+        'user_id',
+        'event_name',
+        'properties',
+        'occurred_at',
     ];
 
     protected $casts = [
-        "properties" => "array",
+        'properties' => 'array',
     ];
 
     public function tenant(): BelongsTo
@@ -34,4 +33,3 @@ class AnalyticsEvent extends Model
         return $this->belongsTo(User::class);
     }
 }
-

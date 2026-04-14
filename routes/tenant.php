@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware;
 
@@ -25,10 +24,6 @@ Route::middleware([
     Middleware\ScopeSessions::class,
 ])->group(function () {
     Route::get('/', function () {
-            dd(DB::connection()->getDatabaseName());
-
-            // dd(\App\Models\User::first()->email);
-
-        return 'This is your multi-tenant application. The id of the current tenant is ' . tenant('id') . "\n";
+        return 'This is your multi-tenant application. The id of the current tenant is '.tenant('id')."\n";
     });
 });
