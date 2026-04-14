@@ -42,8 +42,8 @@ class SubscriptionResource extends JsonResource
             'can_upgrade' => $this->canUpgrade(),
             'can_downgrade' => $this->canDowngrade(),
             'days_remaining' => $this->daysRemaining(),
-            'plan' => $this->when($this->resource->relationLoaded('plan'), fn () => PlanResource::make($this->resource->plan)->resolve($request)),
-            'user' => $this->when($this->resource->relationLoaded('user'), fn () => UserResource::make($this->resource->user)->resolve($request)),
+            'plan' => $this->whenLoaded('plan', fn () => PlanResource::make($this->resource->plan)->resolve($request)),
+            'user' => $this->whenLoaded('user', fn () => UserResource::make($this->resource->user)->resolve($request)),
             'created_at' => $this->resource->created_at?->toIso8601String(),
             'updated_at' => $this->resource->updated_at?->toIso8601String(),
         ];
