@@ -11,8 +11,6 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 abstract class BaseRepository
 {
-    protected string $modelClass;
-
     abstract protected function model(): string;
 
     public function find(string|int $id): ?Model
