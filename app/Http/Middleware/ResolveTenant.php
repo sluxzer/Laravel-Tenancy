@@ -6,7 +6,6 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Tenancy;
 use Stancl\Tenancy\Exceptions\TenantCouldNotBeIdentifiedException;
 
 /**
@@ -49,7 +48,7 @@ class ResolveTenant
      */
     public function terminate(Request $request, $response)
     {
-        Tenancy::end();
+        tenancy()->end();
 
         return $response;
     }

@@ -26,6 +26,9 @@ return Application::configure(basePath: dirname(__DIR__))
                     ->group(base_path('routes/web.php'));
             }
 
+            // Load main API routes (handles tenant resolution internally)
+            Route::prefix('api')->group(base_path('routes/api.php'));
+
             Route::middleware([
                 'tenant',
                 InitializeTenancyByPath::class,

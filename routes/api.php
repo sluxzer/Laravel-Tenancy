@@ -125,7 +125,7 @@ Route::middleware('api')->group(function () {
     | Tenant Routes (Path-based: /api/{tenant}/...)
     |--------------------------------------------------------------------------
     */
-    Route::prefix('{tenant}')->middleware([ResolveTenant::class, 'tenancy.end'])->group(function () {
+    Route::prefix('{tenant}')->middleware([ResolveTenant::class])->group(function () {
         /*
         |--------------------------------------------------------------------------
         | Public Routes
@@ -326,7 +326,7 @@ Route::middleware('api')->group(function () {
             Route::prefix('analytics')->group(function () {
                 Route::post('/track', [AnalyticsController::class, 'track']);
                 Route::post('/track/batch', [AnalyticsController::class, 'batchTrack']);
-                Route::apiResource('events', [AnalyticsController::class]);
+                Route::apiResource('events', AnalyticsController::class);
 
                 // Analytics actions
                 Route::get('/events/summary', [AnalyticsController::class, 'summary']);
