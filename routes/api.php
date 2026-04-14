@@ -187,13 +187,13 @@ Route::middleware('api')->group(function () {
                 Route::apiResource('refunds', RefundController::class);
 
                 // Subscription actions
-                Route::post('/subscriptions/{id}/upgrade', [SubscriptionController::class, 'upgrade']);
-                Route::post('/subscriptions/{id}/downgrade', [SubscriptionController::class, 'downgrade']);
-                Route::post('/subscriptions/{id}/pause', [SubscriptionController::class, 'pause']);
-                Route::post('/subscriptions/{id}/resume', [SubscriptionController::class, 'resume']);
-                Route::post('/subscriptions/{id}/cancel', [SubscriptionController::class, 'cancel']);
-                Route::post('/subscriptions/{id}/renew', [SubscriptionController::class, 'renew']);
-                Route::post('/subscriptions/{id}/apply-voucher', [SubscriptionController::class, 'applyVoucher']);
+                Route::post('/subscriptions/{subscription}/upgrade', [SubscriptionController::class, 'upgrade']);
+                Route::post('/subscriptions/{subscription}/downgrade', [SubscriptionController::class, 'downgrade']);
+                Route::post('/subscriptions/{subscription}/pause', [SubscriptionController::class, 'pause']);
+                Route::post('/subscriptions/{subscription}/resume', [SubscriptionController::class, 'resume']);
+                Route::post('/subscriptions/{subscription}/cancel', [SubscriptionController::class, 'cancel']);
+                Route::post('/subscriptions/{subscription}/renew', [SubscriptionController::class, 'renew']);
+                Route::post('/subscriptions/{subscription}/apply-voucher', [SubscriptionController::class, 'applyVoucher']);
 
                 // Invoice actions
                 Route::post('/invoices/{id}/send', [InvoiceController::class, 'send']);

@@ -5,34 +5,61 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Billing;
 
 use App\Http\Controllers\Controller;
-use App\Models\Plan;
+use App\Http\Requests\Billing\ApplyVoucherRequest;
+use App\Http\Requests\Billing\CancelSubscriptionRequest;
+use App\Http\Requests\Billing\CreateSubscriptionRequest;
+use App\Http\Requests\Billing\DowngradeSubscriptionRequest;
+use App\Http\Requests\Billing\PauseSubscriptionRequest;
+use App\Http\Requests\Billing\RenewSubscriptionRequest;
+use App\Http\Requests\Billing\ResumeSubscriptionRequest;
+use App\Http\Requests\Billing\UpdateSubscriptionRequest;
+use App\Http\Requests\Billing\UpgradeSubscriptionRequest;
+use App\Http\Resources\Billing\SubscriptionResource;
+use App\Http\Resources\JsonResourceCollection;
 use App\Models\Subscription;
-use App\Services\SubscriptionService;
-use App\Services\VoucherService;
+use App\Services\Contracts\SubscriptionServiceInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
  * Subscription Controller (Tenant)
  *
- * Tenant-level subscription management.
+ * Thin controller handling HTTP concerns for tenant subscription management.
+ * All business logic is delegated to SubscriptionServiceInterface.
  */
 class SubscriptionController extends Controller
 {
-    protected SubscriptionService $subscriptionService;
+    public function __construct(
+        protected SubscriptionServiceInterface $subscriptionService
+    ) {}
 
-    public function __construct(SubscriptionService $subscriptionService)
+    /**
+     * Get all subscriptions for tenant.
+     */
+    public function index(Request $request): JsonResponse
     {
-        $this->subscriptionService = $subscriptionService;
+        $tenant = tenancy()->tenant;
+        $status = $request->input('status');
+        $perPage = (int) $request->input('per_page', 20);
+
+        $subscriptions = $this->subscriptionService->getForTenant(
+            $tenant->id,
+            $status,
+            $perPage
+        );
+
+        return response()->json(
+            JsonResourceCollection::paginated($subscriptions, SubscriptionResource::class)
+        );
     }
 
     /**
-     * Get current subscription for user.
+     * Get current subscription for tenant.
      */
     public function show(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $subscription = $this->subscriptionService->getActiveSubscription($user);
+        $tenant = tenancy()->tenant;
+        $subscription = $this->subscriptionService->getActiveSubscription($tenant);
 
         if (! $subscription) {
             return response()->json([
@@ -47,224 +74,170 @@ class SubscriptionController extends Controller
             ]);
         }
 
-        return response()->json([
-            'success' => true,
-            'data' => $subscription->load('plan'),
-        ]);
-    }
-
-    /**
-     * Get all subscriptions for tenant.
-     */
-    public function index(Request $request): JsonResponse
-    {
-        $tenant = tenancy()->tenant;
-
-        $query = Subscription::where('tenant_id', $tenant->id);
-
-        if ($request->has('status')) {
-            $query->where('status', $request->input('status'));
-        }
-
-        $subscriptions = $query->with(['plan', 'user'])
-            ->orderBy('created_at', 'desc')
-            ->paginate($request->input('per_page', 20));
-
-        return response()->json([
-            'success' => true,
-            'data' => $subscriptions->items(),
-            'pagination' => [
-                'total' => $subscriptions->total(),
-                'per_page' => $subscriptions->perPage(),
-                'current_page' => $subscriptions->currentPage(),
-                'last_page' => $subscriptions->lastPage(),
-            ],
-        ]);
+        return response()->json(
+            JsonResourceCollection::single(SubscriptionResource::make($subscription->load('plan')))
+        );
     }
 
     /**
      * Create a new subscription.
      */
-    public function store(Request $request): JsonResponse
+    public function store(CreateSubscriptionRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'plan_id' => 'required|integer|exists:plans,id',
-            'payment_method' => 'required|string',
-            'payment_token' => 'nullable|string',
-            'billing_cycle' => 'required|in:monthly,yearly,quarterly',
-        ]);
-
-        $user = $request->user();
-        $plan = Plan::findOrFail($validated['plan_id']);
+        $tenant = tenancy()->tenant;
+        $plan = $request->getPlan();
+        $billingCycle = $request->input('billing_cycle');
+        $userId = $request->input('user_id');
+        $metadata = $request->getMetadata();
 
         $subscription = $this->subscriptionService->create(
-            $user,
+            $tenant,
             $plan,
-            $validated['payment_method'],
-            $validated['payment_token'] ?? null,
-            $validated['billing_cycle']
+            $billingCycle,
+            $userId ? (int) $userId : null,
+            $metadata
         );
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Subscription created successfully',
-            'data' => $subscription->load('plan'),
-        ], 201);
+        return response()->json(
+            JsonResourceCollection::success(
+                'Subscription created successfully',
+                SubscriptionResource::make($subscription->load('plan'))->resolve()
+            ),
+            201
+        );
     }
 
     /**
      * Update a subscription.
      */
-    public function update(Request $request, string $id): JsonResponse
+    public function update(UpdateSubscriptionRequest $request, Subscription $subscription): JsonResponse
     {
-        $subscription = Subscription::findOrFail($id);
+        $data = $request->validated();
 
-        $validated = $request->validate([
-            'status' => 'sometimes|in:active,cancelled,paused,expired',
-        ]);
+        $subscription = $this->subscriptionService->update($subscription, $data);
 
-        $subscription->update($validated);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Subscription updated successfully',
-            'data' => $subscription->load('plan'),
-        ]);
+        return response()->json(
+            JsonResourceCollection::success(
+                'Subscription updated successfully',
+                SubscriptionResource::make($subscription->load('plan'))->resolve()
+            )
+        );
     }
 
     /**
      * Upgrade subscription.
      */
-    public function upgrade(Request $request, string $id): JsonResponse
+    public function upgrade(UpgradeSubscriptionRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'plan_id' => 'required|integer|exists:plans,id',
-        ]);
-
-        $subscription = Subscription::findOrFail($id);
-        $newPlan = Plan::findOrFail($validated['plan_id']);
+        $subscription = $request->getSubscription();
+        $newPlan = $request->getNewPlan();
 
         $subscription = $this->subscriptionService->upgrade($subscription, $newPlan);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Subscription upgraded successfully',
-            'data' => $subscription->load('plan'),
-        ]);
+        return response()->json(
+            JsonResourceCollection::success(
+                'Subscription upgraded successfully',
+                SubscriptionResource::make($subscription->load('plan'))->resolve()
+            )
+        );
     }
 
     /**
      * Downgrade subscription.
      */
-    public function downgrade(Request $request, string $id): JsonResponse
+    public function downgrade(DowngradeSubscriptionRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'plan_id' => 'required|integer|exists:plans,id',
-        ]);
-
-        $subscription = Subscription::findOrFail($id);
-        $newPlan = Plan::findOrFail($validated['plan_id']);
+        $subscription = $request->getSubscription();
+        $newPlan = $request->getNewPlan();
 
         $subscription = $this->subscriptionService->downgrade($subscription, $newPlan);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Subscription downgrade scheduled',
-            'data' => $subscription->load('plan'),
-        ]);
+        return response()->json(
+            JsonResourceCollection::success(
+                'Subscription downgrade scheduled',
+                SubscriptionResource::make($subscription->load('plan'))->resolve()
+            )
+        );
     }
 
     /**
      * Pause subscription.
      */
-    public function pause(string $id): JsonResponse
+    public function pause(PauseSubscriptionRequest $request): JsonResponse
     {
-        $subscription = Subscription::findOrFail($id);
+        $subscription = $request->getSubscription();
         $subscription = $this->subscriptionService->pause($subscription);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Subscription paused successfully',
-            'data' => $subscription->load('plan'),
-        ]);
+        return response()->json(
+            JsonResourceCollection::success(
+                'Subscription paused successfully',
+                SubscriptionResource::make($subscription->load('plan'))->resolve()
+            )
+        );
     }
 
     /**
      * Resume subscription.
      */
-    public function resume(string $id): JsonResponse
+    public function resume(ResumeSubscriptionRequest $request): JsonResponse
     {
-        $subscription = Subscription::findOrFail($id);
+        $subscription = $request->getSubscription();
         $subscription = $this->subscriptionService->resume($subscription);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Subscription resumed successfully',
-            'data' => $subscription->load('plan'),
-        ]);
+        return response()->json(
+            JsonResourceCollection::success(
+                'Subscription resumed successfully',
+                SubscriptionResource::make($subscription->load('plan'))->resolve()
+            )
+        );
     }
 
     /**
      * Cancel subscription.
      */
-    public function cancel(Request $request, string $id): JsonResponse
+    public function cancel(CancelSubscriptionRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'reason' => 'nullable|string',
-        ]);
+        $subscription = $request->getSubscription();
+        $reason = $request->getReason();
 
-        $subscription = Subscription::findOrFail($id);
-        $subscription = $this->subscriptionService->cancel($subscription, $validated['reason'] ?? null);
+        $subscription = $this->subscriptionService->cancel($subscription, $reason);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Subscription cancelled successfully',
-            'data' => $subscription->load('plan'),
-        ]);
+        return response()->json(
+            JsonResourceCollection::success(
+                'Subscription cancelled successfully',
+                SubscriptionResource::make($subscription->load('plan'))->resolve()
+            )
+        );
     }
 
     /**
      * Renew subscription.
      */
-    public function renew(string $id): JsonResponse
+    public function renew(RenewSubscriptionRequest $request): JsonResponse
     {
-        $subscription = Subscription::findOrFail($id);
+        $subscription = $request->getSubscription();
         $subscription = $this->subscriptionService->renew($subscription);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Subscription renewed successfully',
-            'data' => $subscription->load('plan'),
-        ]);
+        return response()->json(
+            JsonResourceCollection::success(
+                'Subscription renewed successfully',
+                SubscriptionResource::make($subscription->load('plan'))->resolve()
+            )
+        );
     }
 
     /**
      * Apply voucher to subscription.
      */
-    public function applyVoucher(Request $request, string $id): JsonResponse
+    public function applyVoucher(ApplyVoucherRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => 'required|string',
-        ]);
+        $subscription = $request->getSubscription();
+        $voucher = $request->getVoucher();
 
-        $subscription = Subscription::findOrFail($id);
-        $user = $request->user();
-        $voucherService = app(VoucherService::class);
+        $this->subscriptionService->applyVoucher($subscription, $voucher);
 
-        $validation = $voucherService->validate($validated['code'], $user);
-
-        if (! $validation['valid']) {
-            return response()->json([
-                'success' => false,
-                'message' => $validation['message'],
-            ], 400);
-        }
-
-        $result = $voucherService->apply($validated['code'], $user, $subscription->plan->price_monthly, $subscription);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Voucher applied successfully',
-        ]);
+        return response()->json(
+            JsonResourceCollection::success('Voucher applied successfully')
+        );
     }
 }
