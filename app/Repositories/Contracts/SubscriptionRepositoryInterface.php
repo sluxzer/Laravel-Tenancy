@@ -6,8 +6,8 @@ namespace App\Repositories\Contracts;
 
 use App\Models\Plan;
 use App\Models\Subscription;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 interface SubscriptionRepositoryInterface
@@ -18,9 +18,9 @@ interface SubscriptionRepositoryInterface
 
     public function create(array $data): Subscription;
 
-    public function update(Subscription $subscription, array $data): bool;
+    public function update(Model $subscription, array $data): bool;
 
-    public function delete(Subscription $subscription): bool;
+    public function delete(Model $subscription): bool;
 
     public function getActiveForUser(int $userId): ?Subscription;
 
