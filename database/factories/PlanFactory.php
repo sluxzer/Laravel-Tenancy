@@ -22,7 +22,7 @@ class PlanFactory extends Factory
 
         return [
             'name' => $plan['name'],
-            'slug' => strtolower(str_replace(' ', '-', $plan['name'])),
+            'slug' => strtolower(str_replace(' ', '-', $plan['name'])).'-'.fake()->unique()->randomNumber(),
             'description' => fake()->sentence(),
             'price_monthly' => $plan['price_monthly'],
             'price_yearly' => $plan['price_yearly'],

@@ -22,11 +22,15 @@ class ResolveTenant
     public function handle(Request $request, Closure $next): mixed
     {
         try {
-            // Initialize tenancy from request path
-            tenancy()->initialize(
-                $request->getHost() ?? null,
-                $request->getRequestUri()
-            );
+            // Extract tenant id from URL path
+            $tenantId = $request->route('tenant');
+
+            if (! $tenantId) {
+                throw new TenantCouldNotBeIdentifiedException();
+            }
+
+            // Initialize tenancy with the tenant id
+            tenancy()->initialize($tenantId);
         } catch (TenantCouldNotBeIdentifiedException $e) {
             return response()->json([
                 'success' => false,

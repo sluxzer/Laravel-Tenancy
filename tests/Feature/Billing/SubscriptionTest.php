@@ -41,9 +41,9 @@ beforeEach(function () {
     Tenant::query()->delete();
     User::query()->delete();
 
-    // Create a tenant for testing with explicit ID
+    // Create a tenant for testing with explicit ID (integer for now to match subscriptions.tenant_id)
     $tenant = Tenant::factory()->active()->make();
-    $tenant->id = Str::uuid()->toString();
+    $tenant->id = (string) random_int(1, 999999);
     $tenant->save();
 
     // Re-enable events for the rest of the test
@@ -330,9 +330,7 @@ it('can apply voucher to subscription', function () {
     $tenant = tenancy()->tenant;
     $user = User::factory()->create();
     $plan = Plan::factory()->create();
-    $voucher = Voucher::factory()
-        ->for($tenant)
-        ->create(['is_active' => true]);
+    $voucher = Voucher::factory()->create(['is_active' => true]);
 
     $subscription = Subscription::factory()
         ->for($tenant)

@@ -179,14 +179,26 @@ Route::middleware('api')->group(function () {
             | Billing Routes
             |--------------------------------------------------------------------------
             */
-            Route::middleware([CheckSubscriptionStatus::class, CheckMaintenance::class])->prefix('billing')->group(function () {
-                Route::apiResource('subscriptions', SubscriptionController::class);
-                Route::apiResource('invoices', InvoiceController::class);
-                Route::apiResource('payments', PaymentController::class);
-                Route::apiResource('transactions', TransactionController::class);
-                Route::apiResource('refunds', RefundController::class);
+            Route::prefix('billing')->group(function () {
+                Route::post('/subscriptions', [SubscriptionController::class, 'store'])->middleware([CheckMaintenance::class]);
 
-                // Subscription actions
+                Route::middleware([CheckSubscriptionStatus::class, CheckMaintenance::class])->group(function () {
+                    Route::apiResource('subscriptions', SubscriptionController::class)->except(['store']);
+                    Route::apiResource('invoices', InvoiceController::class);
+                    Route::apiResource('payments', PaymentController::class);
+                    Route::apiResource('transactions', TransactionController::class);
+                    Route::apiResource('refunds', RefundController::class);
+                });
+
+                Route::middleware([CheckSubscriptionStatus::class, CheckMaintenance::class])->prefix('billing')->group(function () {
+                    Route::apiResource('subscriptions', SubscriptionController::class)->except(['store']);
+                    Route::apiResource('invoices', InvoiceController::class);
+                    Route::apiResource('payments', PaymentController::class);
+                    Route::apiResource('transactions', TransactionController::class);
+                    Route::apiResource('refunds', RefundController::class);
+
+                    // Subscription actions
+                });
                 Route::post('/subscriptions/{subscription}/upgrade', [SubscriptionController::class, 'upgrade']);
                 Route::post('/subscriptions/{subscription}/downgrade', [SubscriptionController::class, 'downgrade']);
                 Route::post('/subscriptions/{subscription}/pause', [SubscriptionController::class, 'pause']);

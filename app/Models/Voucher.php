@@ -13,7 +13,6 @@ class Voucher extends Model
     use HasFactory;
 
     protected $fillable = [
-        'tenant_id',
         'code',
         'name',
         'description',
@@ -30,11 +29,6 @@ class Voucher extends Model
         'expires_at' => 'datetime',
         'is_active' => 'boolean',
     ];
-
-    public function tenant(): BelongsTo
-    {
-        return $this->belongsTo(Tenant::class);
-    }
 
     public function plan(): BelongsTo
     {

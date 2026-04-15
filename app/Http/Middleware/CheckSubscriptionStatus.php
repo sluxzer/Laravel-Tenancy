@@ -40,9 +40,9 @@ class CheckSubscriptionStatus
         }
 
         $tenant = tenancy()->tenant;
-        $subscription = $this->subscriptionService->getActiveTenantSubscription($tenant->id);
+        $subscription = $this->subscriptionService->getActiveSubscription($tenant);
 
-        if (! $subscription || ! $this->subscriptionService->isValid($subscription)) {
+        if (! $subscription) {
             return new JsonResponse([
                 'success' => false,
                 'message' => 'Subscription is inactive or expired. Please renew your subscription.',

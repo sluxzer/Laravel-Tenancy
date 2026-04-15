@@ -37,7 +37,7 @@ class SubscriptionService implements SubscriptionServiceInterface
      */
     public function getActiveSubscription(Tenant $tenant): ?Subscription
     {
-        $subscriptions = $this->subscriptionRepository->getActiveForTenant($tenant->id);
+        $subscriptions = $this->subscriptionRepository->getActiveForTenant((int) $tenant->id);
 
         return $subscriptions->first();
     }
@@ -78,7 +78,7 @@ class SubscriptionService implements SubscriptionServiceInterface
 
         return DB::transaction(function () use ($tenant, $plan, $billingCycle, $userId, $metadata, $startDate, $endDate) {
             $data = [
-                'tenant_id' => $tenant->id,
+                'tenant_id' => (int) $tenant->id,
                 'user_id' => $userId,
                 'plan_id' => $plan->id,
                 'status' => 'active',

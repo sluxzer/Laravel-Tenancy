@@ -8,12 +8,16 @@ use App\Repositories\Contracts\PlanRepositoryInterface;
 use App\Repositories\Contracts\RefundRepositoryInterface;
 use App\Repositories\Contracts\SubscriptionRepositoryInterface;
 use App\Repositories\Contracts\TransactionRepositoryInterface;
+use App\Repositories\Contracts\VoucherRepositoryInterface;
 use App\Repositories\Eloquent\InvoiceRepository;
 use App\Repositories\Eloquent\PaymentRepository;
 use App\Repositories\Eloquent\PlanRepository;
 use App\Repositories\Eloquent\RefundRepository;
 use App\Repositories\Eloquent\SubscriptionRepository;
 use App\Repositories\Eloquent\TransactionRepository;
+use App\Repositories\Eloquent\VoucherRepository;
+use App\Services\Contracts\SubscriptionServiceInterface;
+use App\Services\SubscriptionService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +39,16 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             PlanRepositoryInterface::class,
             PlanRepository::class
+        );
+
+        $this->app->bind(
+            VoucherRepositoryInterface::class,
+            VoucherRepository::class
+        );
+
+        $this->app->bind(
+            SubscriptionServiceInterface::class,
+            SubscriptionService::class
         );
 
         // TODO: Bind other repositories when they are implemented

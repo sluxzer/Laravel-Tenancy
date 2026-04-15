@@ -12,28 +12,23 @@ class VoucherFactory extends Factory
 {
     public function definition(): array
     {
-        $types = ['percentage', 'fixed_amount', 'free_trial'];
+        $types = ['percentage', 'fixed'];
         $type = fake()->randomElement($types);
 
         return [
             'code' => strtoupper(fake()->unique()->lexify('??????')),
+            'name' => fake()->words(3, true),
+            'description' => fake()->sentence(),
             'type' => $type,
             'value' => match ($type) {
                 'percentage' => fake()->numberBetween(5, 50),
-                'fixed_amount' => fake()->randomFloat(2, 5, 50),
-                'free_trial' => fake()->numberBetween(7, 30),
+                'fixed' => fake()->randomFloat(2, 5, 50),
             },
-            'currency_code' => fake()->randomElement(['USD', 'EUR', 'GBP']),
-            'description' => fake()->sentence(),
+            'plan_id' => fake()->optional(0.5)->numberBetween(1, 3),
             'max_uses' => fake()->numberBetween(10, 1000),
             'used_count' => fake()->numberBetween(0, 500),
-            'valid_from' => now()->subDays(fake()->numberBetween(1, 30)),
-            'valid_until' => now()->addDays(fake()->numberBetween(30, 365)),
+            'expires_at' => now()->addDays(fake()->numberBetween(30, 365)),
             'is_active' => fake()->boolean(80),
-            'plan_ids' => fake()->randomElements([1, 2, 3], fake()->numberBetween(0, 3)),
-            'min_amount' => fake()->optional(0.3)->randomFloat(2, 10, 50),
-            'max_discount' => fake()->optional(0.3)->randomFloat(2, 50, 100),
-            'metadata' => [],
         ];
     }
 
@@ -45,19 +40,11 @@ class VoucherFactory extends Factory
         ]);
     }
 
-    public function fixedAmount(): static
+    public function fixed(): static
     {
         return $this->state(fn (array $attributes) => [
-            'type' => 'fixed_amount',
+            'type' => 'fixed',
             'value' => fake()->randomFloat(2, 5, 50),
-        ]);
-    }
-
-    public function freeTrial(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'type' => 'free_trial',
-            'value' => fake()->numberBetween(7, 30),
         ]);
     }
 
@@ -71,7 +58,7 @@ class VoucherFactory extends Factory
     public function expired(): static
     {
         return $this->state(fn (array $attributes) => [
-            'valid_until' => now()->subDays(fake()->numberBetween(1, 30)),
+            'expires_at' => now()->subDays(fake()->numberBetween(1, 30)),
             'is_active' => false,
         ]);
     }
@@ -79,7 +66,7 @@ class VoucherFactory extends Factory
     public function forPlan(int $planId): static
     {
         return $this->state(fn (array $attributes) => [
-            'plan_ids' => [$planId],
+            'plan_id' => $planId,
         ]);
     }
 }

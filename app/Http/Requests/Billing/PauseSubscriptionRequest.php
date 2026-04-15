@@ -51,6 +51,6 @@ class PauseSubscriptionRequest extends FormRequest
      */
     public function getSubscription(): Subscription
     {
-        return $this->route('subscription');
+        return Subscription::findOrFail($this->route('subscription'));
     }
 }
