@@ -6,9 +6,9 @@ namespace App\Events\Listeners;
 
 use App\Events\InvoicePaid;
 use App\Models\Invoice;
+use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Invoice Paid Listener
@@ -22,24 +22,24 @@ class InvoicePaidListener implements ShouldQueue
     public function handle(InvoicePaid $event): void
     {
         $invoice = $event->invoice;
-        $user = \App\Models\User::find($event->userId);
+        $user = User::find($event->userId);
         $tenant = tenancy()->tenant;
 
-        if (!$user || !$tenant) {
+        if (! $user || ! $tenant) {
             return;
         }
 
-        $notificationService = app(\App\Services\NotificationService::class);
+        $notificationService = app(NotificationService::class);
 
-        $notificationService->send($tenant($tenant, [
+        $notificationService->send($tenant, [
             'channel' => 'email',
-            'title' => "Payment Received",
-            'message' => "Payment of {$invoice->currency_code}{$invoice->amount} has been received for invoice #{$invoice->id}.",
+            'title' => 'Payment Received',
+            'message' => "Payment of {$invoice->currency}{$invoice->total_amount} has been received for invoice #{$invoice->id}.",
             'type' => 'invoice_paid',
             'data' => [
                 'invoice_id' => $invoice->id,
-                'amount' => $invoice->amount,
-                'currency_code' => $invoice->currency_code,
+                'amount' => $invoice->total_amount,
+                'currency' => $invoice->currency,
             ],
         ]);
 

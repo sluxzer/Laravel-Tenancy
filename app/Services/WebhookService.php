@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Tenant;
 use App\Models\Webhook;
 use App\Models\WebhookEvent;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * Webhook Service
@@ -132,5 +136,92 @@ class WebhookService
             ->orderBy('created_at', 'desc')
             ->limit($limit)
             ->get();
+    }
+
+    /**
+     * Create a webhook (controller interface).
+     */
+    public function create(Tenant $tenant, string $name, string $url, array $events, ?string $secret = null, bool $isActive = true, ?string $description = null): Webhook
+    {
+        return Webhook::create([
+            'tenant_id' => $tenant->id,
+            'name' => $name,
+            'url' => $url,
+            'secret' => $secret ?? Str::random(64),
+            'events' => $events,
+            'headers' => ['Content-Type' => 'application/json'],
+            'is_active' => $isActive,
+        ]);
+    }
+
+    /**
+     * Update a webhook.
+     */
+    public function update(Webhook $webhook, array $data): Webhook
+    {
+        $webhook->update(array_filter([
+            'name' => $data['name'] ?? null,
+            'url' => $data['url'] ?? null,
+            'events' => $data['events'] ?? null,
+            'secret' => $data['secret'] ?? null,
+            'is_active' => $data['is_active'] ?? null,
+        ]));
+
+        return $webhook->fresh();
+    }
+
+    /**
+     * Delete a webhook.
+     */
+    public function delete(Webhook $webhook): void
+    {
+        $webhook->delete();
+    }
+
+    /**
+     * Test a webhook by sending a test payload.
+     */
+    public function test(Webhook $webhook): array
+    {
+        try {
+            $response = Http::post($webhook->url, [
+                'test' => true,
+                'webhook_id' => $webhook->id,
+                'timestamp' => Carbon::now()->timestamp,
+                'message' => 'Test webhook delivery',
+            ]);
+
+            return [
+                'success' => $response->successful(),
+                'message' => $response->successful() ? 'Test webhook delivered successfully' : 'Test webhook failed',
+                'status_code' => $response->status(),
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Test webhook failed: '.$e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Retry a failed webhook event.
+     */
+    public function retryEvent(WebhookEvent $event): array
+    {
+        if ($event->retry_count >= 5) {
+            return [
+                'success' => false,
+                'message' => 'Maximum retry attempts exceeded',
+            ];
+        }
+
+        $success = $this->deliverWebhook($event);
+
+        return [
+            'success' => $success,
+            'message' => $success ? 'Webhook event retried successfully' : 'Webhook event retry failed',
+            'event' => $event->fresh(),
+        ];
     }
 }

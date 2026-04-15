@@ -28,7 +28,7 @@ class VoucherFactory extends Factory
             'max_uses' => fake()->numberBetween(10, 1000),
             'used_count' => fake()->numberBetween(0, 500),
             'expires_at' => now()->addDays(fake()->numberBetween(30, 365)),
-            'is_active' => fake()->boolean(80),
+            'is_active' => true,  // Always active for tests
         ];
     }
 

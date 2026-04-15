@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
  *
  * Tenant-level transaction management.
  */
-class TransactionController extends Controller
+class TransactionController
 {
     /**
      * Get all transactions for tenant.
@@ -34,7 +34,7 @@ class TransactionController extends Controller
             $query->where('status', $request->input('status'));
         }
 
-        $transactions = $query->with(['invoice', 'payment'])
+        $transactions = $query->with(['invoice', 'subscription'])
             ->orderBy('created_at', 'desc')
             ->paginate($request->input('per_page', 20));
 
@@ -58,7 +58,7 @@ class TransactionController extends Controller
         $tenant = tenancy()->tenant;
 
         $transaction = Transaction::where('tenant_id', $tenant->id)
-            ->with(['invoice', 'payment'])
+            ->with(['invoice', 'subscription'])
             ->findOrFail($id);
 
         return response()->json([
@@ -76,10 +76,12 @@ class TransactionController extends Controller
 
         $validated = $request->validate([
             'invoice_id' => 'nullable|exists:invoices,id',
-            'payment_id' => 'nullable|exists:payments,id',
-            'type' => 'required|in:charge,refund,credit,debit',
+            'subscription_id' => 'nullable|exists:subscriptions,id',
+            'type' => 'required|in:charge,refund,credit,debit,payment',
+            'provider' => 'required|string',
+            'provider_transaction_id' => 'nullable|string',
             'amount' => 'required|numeric',
-            'currency_code' => 'required|string|max:3',
+            'currency' => 'required|string|max:3',
             'description' => 'nullable|string',
             'status' => 'required|in:pending,completed,failed',
             'metadata' => 'nullable|array',
@@ -87,11 +89,14 @@ class TransactionController extends Controller
 
         $transaction = Transaction::create([
             'tenant_id' => $tenant->id,
+            'user_id' => auth()->id(),
             'invoice_id' => $validated['invoice_id'] ?? null,
-            'payment_id' => $validated['payment_id'] ?? null,
+            'subscription_id' => $validated['subscription_id'] ?? null,
             'type' => $validated['type'],
+            'provider' => $validated['provider'],
+            'provider_transaction_id' => $validated['provider_transaction_id'] ?? null,
             'amount' => $validated['amount'],
-            'currency_code' => $validated['currency_code'],
+            'currency' => $validated['currency'],
             'description' => $validated['description'] ?? null,
             'status' => $validated['status'],
             'metadata' => $validated['metadata'] ?? [],
@@ -100,7 +105,7 @@ class TransactionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Transaction created successfully',
-            'data' => $transaction->load(['invoice', 'payment']),
+            'data' => $transaction->load(['invoice', 'subscription']),
         ], 201);
     }
 
@@ -124,7 +129,7 @@ class TransactionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Transaction updated successfully',
-            'data' => $transaction->load(['invoice', 'payment']),
+            'data' => $transaction->load(['invoice', 'subscription']),
         ]);
     }
 
@@ -142,19 +147,21 @@ class TransactionController extends Controller
             ? Carbon::parse($request->input('end_date'))
             : now();
 
-        $summary = Transaction::where('tenant_id', $tenant->id)
+        $transactions = Transaction::where('tenant_id', $tenant->id)
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->selectRaw('
-                type,
-                status,
-                SUM(CASE WHEN type = "charge" THEN amount ELSE 0 END) as total_charges,
-                SUM(CASE WHEN type = "refund" THEN amount ELSE 0 END) as total_refunds,
-                SUM(CASE WHEN type = "credit" THEN amount ELSE 0 END) as total_credits,
-                SUM(CASE WHEN type = "debit" THEN amount ELSE 0 END) as total_debits,
-                COUNT(*) as count
-            ')
-            ->groupBy('type', 'status')
             ->get();
+
+        $summary = $transactions->groupBy(fn ($t) => $t->type)
+            ->map(fn ($group, $type) => [
+                'type' => $type,
+                'total_amount' => $group->sum('amount'),
+                'count' => $group->count(),
+                'by_status' => $group->groupBy('status')->map(fn ($statusGroup) => [
+                    'status' => $statusGroup->first()->status,
+                    'total_amount' => $statusGroup->sum('amount'),
+                    'count' => $statusGroup->count(),
+                ])->values()->all(),
+            ])->values()->all();
 
         return response()->json([
             'success' => true,

@@ -9,7 +9,6 @@ use App\Models\User;
 use App\Models\Voucher;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Str;
 use Stancl\Tenancy\Bootstrappers\DatabaseSessionBootstrapper;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper;

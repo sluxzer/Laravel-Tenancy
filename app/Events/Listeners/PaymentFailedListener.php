@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace App\Events\Listeners;
 
 use App\Events\PaymentFailed;
-use App\Models\Payment;
+use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Payment Failed Listener
@@ -21,29 +20,29 @@ class PaymentFailedListener implements ShouldQueue
 
     public function handle(PaymentFailed $event): void
     {
-        $payment = $event->payment;
-        $user = \App\Models\User::find($event->userId);
+        $transaction = $event->transaction;
+        $user = User::find($event->userId);
         $tenant = tenancy()->tenant;
 
-        if (!$user || !$tenant) {
+        if (! $user || ! $tenant) {
             return;
         }
 
-        $notificationService = app(\App\Services\NotificationService::class);
+        $notificationService = app(NotificationService::class);
 
-        $notificationService->send($tenant($tenant, [
+        $notificationService->send($tenant, [
             'channel' => 'email',
             'title' => 'Payment Failed',
-            'message' => "Payment of {$payment->amount}{$payment->currency_code} failed. Please try again.",
+            'message' => "Payment of {$transaction->currency}{$transaction->amount} failed. Please try again.",
             'type' => 'payment_failed',
             'data' => [
-                'payment_id' => $payment->id,
-                'amount' => $payment->amount,
-                'currency_code' => $payment->currency_code,
-                'error_message' => $payment->errorMessage,
+                'transaction_id' => $transaction->id,
+                'amount' => $transaction->amount,
+                'currency' => $transaction->currency,
+                'error_message' => $event->errorMessage,
             ],
         ]);
 
-        $this->error("Payment failed notification sent to user {$event->userId} for payment {$payment->id}");
+        $this->error("Payment failed notification sent to user {$event->userId} for transaction {$transaction->id}");
     }
 }

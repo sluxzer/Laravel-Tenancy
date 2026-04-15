@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Events\PaymentFailed;
-use App\Models\Payment;
 use App\Models\Refund;
+use App\Models\Transaction;
 use App\Services\PaymentProviders\PayPalService;
 use App\Services\PaymentProviders\StripeService;
 use App\Services\PaymentProviders\XenditService;
@@ -38,22 +38,20 @@ class RefundService
     /**
      * Create a refund.
      */
-    public function createRefund(Payment $payment, ?float $amount = null, ?string $reason = null): Refund
+    public function createRefund(Transaction $transaction, ?float $amount = null, ?string $reason = null): Refund
     {
         $refund = Refund::create([
-            'tenant_id' => $payment->tenant_id,
-            'user_id' => $payment->user_id,
-            'payment_id' => $payment->id,
-            'invoice_id' => $payment->invoice_id,
-            'subscription_id' => $payment->subscription_id,
-            'amount' => $amount ?? $payment->amount,
-            'currency_code' => $payment->currency_code,
+            'tenant_id' => $transaction->tenant_id,
+            'user_id' => $transaction->user_id,
+            'transaction_id' => $transaction->id,
+            'invoice_id' => $transaction->invoice_id,
+            'amount' => $amount ?? $transaction->amount,
+            'currency' => $transaction->currency,
             'reason' => $reason ?? 'requested_by_customer',
             'status' => 'pending',
-            'gateway' => $payment->gateway,
-            'metadata' => [
-                'original_transaction_id' => $payment->transaction_id,
-            ],
+            'notes' => null,
+            'processed_by' => null,
+            'processed_at' => null,
         ]);
 
         return $refund;
@@ -64,12 +62,12 @@ class RefundService
      */
     public function processRefund(Refund $refund): array
     {
-        $payment = $refund->payment;
+        $transaction = $refund->transaction;
 
-        if (! $payment || $payment->status !== 'paid') {
+        if (! $transaction || $transaction->status !== 'completed') {
             return [
                 'success' => false,
-                'message' => 'Payment must be in paid status to refund',
+                'message' => 'Transaction must be in completed status to refund',
             ];
         }
 
@@ -80,21 +78,21 @@ class RefundService
             ];
         }
 
-        if ($refund->amount > $payment->amount) {
+        if ($refund->amount > $transaction->amount) {
             return [
                 'success' => false,
-                'message' => 'Refund amount cannot exceed payment amount',
+                'message' => 'Refund amount cannot exceed transaction amount',
             ];
         }
 
         $result = ['success' => false, 'message' => 'Refund processing failed'];
 
         try {
-            match ($payment->gateway) {
-                'stripe' => $result = $this->processStripeRefund($refund, $payment),
-                'xendit' => $result = $this->processXenditRefund($refund, $payment),
-                'paypal' => $result = $this->processPayPalRefund($refund, $payment),
-                default => $result['message'] = 'Unsupported payment gateway',
+            $result = match ($transaction->provider) {
+                'stripe' => $this->processStripeRefund($refund, $transaction),
+                'xendit' => $this->processXenditRefund($refund, $transaction),
+                'paypal' => $this->processPayPalRefund($refund, $transaction),
+                default => ['success' => false, 'message' => 'Unsupported payment gateway'],
             };
         } catch (\Exception $e) {
             Log::error('Refund processing error', [
@@ -103,8 +101,8 @@ class RefundService
             ]);
 
             $refund->update([
-                'status' => 'failed',
-                'metadata' => array_merge($refund->metadata, [
+                'status' => 'cancelled',
+                'metadata' => array_merge($refund->metadata ?? [], [
                     'error' => $e->getMessage(),
                 ]),
             ]);
@@ -113,12 +111,12 @@ class RefundService
         if ($result['success']) {
             $refund->update([
                 'status' => 'processed',
-                'transaction_id' => $result['refund_id'] ?? $result['id'] ?? null,
                 'processed_at' => now(),
-                'metadata' => array_merge($refund->metadata, $result),
+                'processed_by' => auth()->id(),
+                'metadata' => array_merge($refund->metadata ?? [], $result),
             ]);
 
-            event(new PaymentFailed($payment, $refund->amount, $refund->reason));
+            event(new PaymentFailed($transaction, $refund->amount, $refund->reason));
         }
 
         return $result;
@@ -127,13 +125,13 @@ class RefundService
     /**
      * Process Stripe refund.
      */
-    protected function processStripeRefund(Refund $refund, Payment $payment): array
+    protected function processStripeRefund(Refund $refund, Transaction $transaction): array
     {
         $amountInCents = (int) round($refund->amount * 100);
 
         $stripeRefund = $this->stripe->refundPayment(
-            $payment->transaction_id,
-            $refund->amount < $payment->amount ? $amountInCents : null,
+            $transaction->provider_transaction_id,
+            $refund->amount < $transaction->amount ? $amountInCents : null,
             $refund->reason,
         );
 
@@ -151,13 +149,13 @@ class RefundService
     /**
      * Process Xendit refund.
      */
-    protected function processXenditRefund(Refund $refund, Payment $payment): array
+    protected function processXenditRefund(Refund $refund, Transaction $transaction): array
     {
         $amountInSmallestUnit = (int) round($refund->amount);
 
         $xenditRefund = $this->xendit->refund(
-            $payment->transaction_id,
-            $refund->amount < $payment->amount ? $amountInSmallestUnit : null,
+            $transaction->provider_transaction_id,
+            $refund->amount < $transaction->amount ? $amountInSmallestUnit : null,
             $refund->reason,
         );
 
@@ -166,7 +164,7 @@ class RefundService
             'message' => 'Refund processed successfully',
             'refund_id' => $xenditRefund['id'] ?? null,
             'amount' => $xenditRefund['amount'] ?? $refund->amount,
-            'currency' => $xenditRefund['currency'] ?? $refund->currency_code,
+            'currency' => $xenditRefund['currency'] ?? $refund->currency,
             'status' => $xenditRefund['status'] ?? null,
         ];
     }
@@ -174,12 +172,12 @@ class RefundService
     /**
      * Process PayPal refund.
      */
-    protected function processPayPalRefund(Refund $refund, Payment $payment): array
+    protected function processPayPalRefund(Refund $refund, Transaction $transaction): array
     {
         $paypalRefund = $this->paypal->refundCapture(
-            $payment->transaction_id,
-            $refund->amount < $payment->amount ? $refund->amount : null,
-            $refund->currency_code,
+            $transaction->provider_transaction_id,
+            $refund->amount < $transaction->amount ? $refund->amount : null,
+            $refund->currency,
         );
 
         return [
@@ -187,7 +185,7 @@ class RefundService
             'message' => 'Refund processed successfully',
             'refund_id' => $paypalRefund['id'] ?? null,
             'amount' => (float) ($paypalRefund['amount']['value'] ?? $refund->amount),
-            'currency' => $paypalRefund['amount']['currency_code'] ?? $refund->currency_code,
+            'currency' => $paypalRefund['amount']['currency_code'] ?? $refund->currency,
             'status' => $paypalRefund['status'] ?? null,
         ];
     }
@@ -206,7 +204,7 @@ class RefundService
 
         $refund->update([
             'status' => 'cancelled',
-            'cancelled_at' => now(),
+            'processed_at' => now(),
         ]);
 
         return [
@@ -238,46 +236,48 @@ class RefundService
 
         $byStatus = $refunds->groupBy('status')->map(fn ($group) => $group->sum('amount'));
 
-        $byGateway = $refunds->groupBy('gateway')->map(fn ($group) => $group->sum('amount'));
+        $byProvider = $refunds->map(fn ($refund) => $refund->transaction->provider ?? 'unknown')
+            ->groupBy(fn ($provider) => $provider)
+            ->map(fn ($group) => $group->sum(fn ($refund) => $refund->amount));
 
         return [
             'total_refunds' => $refunds->count(),
             'total_amount' => $refunds->sum('amount'),
             'by_status' => $byStatus,
-            'by_gateway' => $byGateway,
+            'by_provider' => $byProvider,
             'recent' => $refunds->take(10),
         ];
     }
 
     /**
-     * Get refundable amount for a payment.
+     * Get refundable amount for a transaction.
      */
-    public function getRefundableAmount(Payment $payment): array
+    public function getRefundableAmount(Transaction $transaction): array
     {
-        $refunded = Refund::where('payment_id', $payment->id)
+        $refunded = Refund::where('transaction_id', $transaction->id)
             ->where('status', 'processed')
             ->sum('amount');
 
         return [
-            'payment_amount' => $payment->amount,
+            'transaction_amount' => $transaction->amount,
             'already_refunded' => $refunded,
-            'refundable_amount' => max(0, $payment->amount - $refunded),
+            'refundable_amount' => max(0, $transaction->amount - $refunded),
         ];
     }
 
     /**
      * Check if a refund is possible.
      */
-    public function canRefund(Payment $payment, ?float $amount = null): array
+    public function canRefund(Transaction $transaction, ?float $amount = null): array
     {
-        if ($payment->status !== 'paid') {
+        if ($transaction->status !== 'completed') {
             return [
                 'can_refund' => false,
-                'reason' => 'Payment is not in paid status',
+                'reason' => 'Transaction is not in completed status',
             ];
         }
 
-        $refundable = $this->getRefundableAmount($payment);
+        $refundable = $this->getRefundableAmount($transaction);
 
         if ($amount && $amount > $refundable['refundable_amount']) {
             return [
@@ -289,7 +289,9 @@ class RefundService
 
         // Check time window (e.g., 180 days for Stripe)
         $refundWindow = config('services.refund.window_days', 180);
-        if ($payment->paid_at && $payment->paid_at->diffInDays(now()) > $refundWindow) {
+        $updatedAt = $transaction->updated_at ?? $transaction->created_at;
+
+        if ($updatedAt && $updatedAt->diffInDays(now()) > $refundWindow) {
             return [
                 'can_refund' => false,
                 'reason' => "Refund window of {$refundWindow} days has expired",
@@ -305,9 +307,9 @@ class RefundService
     /**
      * Calculate refund with fees.
      */
-    public function calculateRefundWithFees(Payment $payment, float $amount): array
+    public function calculateRefundWithFees(Transaction $transaction, float $amount): array
     {
-        $refundable = $this->getRefundableAmount($payment);
+        $refundable = $this->getRefundableAmount($transaction);
 
         if ($amount > $refundable['refundable_amount']) {
             throw new \Exception('Refund amount exceeds refundable amount');
@@ -316,7 +318,7 @@ class RefundService
         // Check if fees are refundable based on policy
         $refundFees = config('services.refund.refund_fees', false);
 
-        $fees = app(PaymentService::class)->calculateFees($payment->amount, $payment->gateway);
+        $fees = app(PaymentService::class)->calculateFees($transaction->amount, $transaction->provider);
 
         return [
             'refund_amount' => $amount,

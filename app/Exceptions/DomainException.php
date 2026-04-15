@@ -9,6 +9,7 @@ use Exception;
 abstract class DomainException extends Exception
 {
     protected string $errorCode = 'DOMAIN_ERROR';
+
     protected int $httpStatus = 400;
 
     public function __construct(string $message = '', $code = null, $status = null)

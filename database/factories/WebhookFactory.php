@@ -29,9 +29,6 @@ class WebhookFactory extends Factory
             ], fake()->numberBetween(1, 5)),
             'secret' => fake()->uuid(),
             'is_active' => fake()->boolean(80),
-            'description' => fake()->sentence(),
-            'retry_on_failure' => true,
-            'max_retries' => 5,
             'headers' => [
                 'Content-Type' => 'application/json',
                 'User-Agent' => 'SaaS-Tenancy-Webhook',

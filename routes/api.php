@@ -323,11 +323,11 @@ Route::middleware('api')->group(function () {
                 Route::apiResource('webhooks', WebhookController::class);
 
                 // Webhook actions
-                Route::post('/webhooks/{id}/toggle', [WebhookController::class, 'toggle']);
-                Route::post('/webhooks/{id}/test', [WebhookController::class, 'test']);
-                Route::post('/webhooks/{id}/regenerate-secret', [WebhookController::class, 'regenerateSecret']);
-                Route::get('/webhooks/{id}/events', [WebhookController::class, 'events']);
-                Route::post('/webhooks/{webhookId}/events/{id}/retry', [WebhookController::class, 'retryEvent']);
+                Route::post('/webhooks/{webhook}/toggle', [WebhookController::class, 'toggle']);
+                Route::post('/webhooks/{webhook}/test', [WebhookController::class, 'test']);
+                Route::post('/webhooks/{webhook}/regenerate-secret', [WebhookController::class, 'regenerateSecret']);
+                Route::get('/webhooks/{webhook}/events', [WebhookController::class, 'events']);
+                Route::post('/webhooks/{webhook}/events/{eventId}/retry', [WebhookController::class, 'retryEvent']);
             });
 
             /*

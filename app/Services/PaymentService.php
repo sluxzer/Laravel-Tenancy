@@ -7,9 +7,9 @@ namespace App\Services;
 use App\Events\InvoicePaid;
 use App\Events\SubscriptionRenewed;
 use App\Models\Invoice;
-use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\Tenant;
+use App\Models\Transaction;
 use App\Models\User;
 use App\Services\PaymentProviders\PayPalService;
 use App\Services\PaymentProviders\StripeService;
@@ -40,58 +40,58 @@ class PaymentService
     }
 
     /**
-     * Create a payment.
+     * Create a payment transaction.
      */
-    public function createPayment(Tenant $tenant, array $data): Payment
+    public function createPayment(Tenant $tenant, array $data): Transaction
     {
-        $payment = Payment::create([
+        $transaction = Transaction::create([
             'tenant_id' => $tenant->id,
             'user_id' => $data['user_id'] ?? auth()->id(),
             'invoice_id' => $data['invoice_id'] ?? null,
             'subscription_id' => $data['subscription_id'] ?? null,
+            'type' => 'payment',
+            'provider' => $data['gateway'],
+            'provider_transaction_id' => $data['transaction_id'] ?? null,
             'amount' => $data['amount'],
-            'currency_code' => $data['currency_code'],
-            'payment_method' => $data['payment_method'],
-            'payment_token' => $data['payment_token'] ?? null,
-            'gateway' => $data['gateway'],
-            'transaction_id' => $data['transaction_id'] ?? null,
+            'currency' => $data['currency'],
             'status' => 'pending',
+            'description' => $data['description'] ?? 'Payment',
             'metadata' => $data['metadata'] ?? [],
         ]);
 
-        return $payment;
+        return $transaction;
     }
 
     /**
-     * Process a payment.
+     * Process a payment transaction.
      */
-    public function processPayment(Payment $payment): array
+    public function processPayment(Transaction $transaction): array
     {
         $result = ['success' => false, 'message' => 'Payment processing failed'];
 
         try {
-            match ($payment->gateway) {
-                'stripe' => $result = $this->processStripePayment($payment),
-                'xendit' => $result = $this->processXenditPayment($payment),
-                'paypal' => $result = $this->processPayPalPayment($payment),
-                default => $result['message'] = 'Unsupported payment gateway',
+            $result = match ($transaction->provider) {
+                'stripe' => $this->processStripePayment($transaction),
+                'xendit' => $this->processXenditPayment($transaction),
+                'paypal' => $this->processPayPalPayment($transaction),
+                default => ['success' => false, 'message' => 'Unsupported payment gateway'],
             };
         } catch (\Exception $e) {
             Log::error('Payment processing error', [
-                'payment_id' => $payment->id,
+                'transaction_id' => $transaction->id,
                 'error' => $e->getMessage(),
             ]);
 
-            $payment->update([
+            $transaction->update([
                 'status' => 'failed',
-                'metadata' => array_merge($payment->metadata, [
+                'metadata' => array_merge($transaction->metadata ?? [], [
                     'error' => $e->getMessage(),
                 ]),
             ]);
         }
 
         if ($result['success']) {
-            $this->handleSuccessfulPayment($payment, $result);
+            $this->handleSuccessfulPayment($transaction, $result);
         }
 
         return $result;
@@ -100,20 +100,22 @@ class PaymentService
     /**
      * Process Stripe payment.
      */
-    protected function processStripePayment(Payment $payment): array
+    protected function processStripePayment(Transaction $transaction): array
     {
-        if (! $payment->payment_token) {
+        $paymentToken = $transaction->metadata['payment_token'] ?? null;
+
+        if (! $paymentToken) {
             return ['success' => false, 'message' => 'Payment token required'];
         }
 
         $paymentIntent = $this->stripe->createPaymentIntent([
-            'user' => $payment->user,
-            'amount' => $payment->amount,
-            'currency' => $payment->currency_code,
-            'payment_method' => $payment->payment_token,
-            'description' => "Payment for invoice {$payment->invoice_id}",
-            'invoice_id' => $payment->invoice_id,
-            'subscription_id' => $payment->subscription_id,
+            'user' => $transaction->user,
+            'amount' => $transaction->amount,
+            'currency' => $transaction->currency,
+            'payment_method' => $paymentToken,
+            'description' => $transaction->description,
+            'invoice_id' => $transaction->invoice_id,
+            'subscription_id' => $transaction->subscription_id,
         ]);
 
         return [
@@ -127,25 +129,25 @@ class PaymentService
     /**
      * Process Xendit payment.
      */
-    protected function processXenditPayment(Payment $payment): array
+    protected function processXenditPayment(Transaction $transaction): array
     {
         $invoice = $this->xendit->createInvoice([
-            'external_id' => "payment_{$payment->id}",
-            'amount' => (int) $payment->amount,
-            'description' => "Payment for invoice {$payment->invoice_id}",
-            'currency' => $payment->currency_code,
-            'payer_email' => $payment->user->email,
+            'external_id' => "payment_{$transaction->id}",
+            'amount' => (int) $transaction->amount,
+            'description' => $transaction->description,
+            'currency' => $transaction->currency,
+            'payer_email' => $transaction->user->email,
             'should_send_email' => true,
-            'user_id' => $payment->user_id,
+            'user_id' => $transaction->user_id,
             'metadata' => [
-                'payment_id' => $payment->id,
-                'invoice_id' => $payment->invoice_id,
+                'transaction_id' => $transaction->id,
+                'invoice_id' => $transaction->invoice_id,
             ],
         ]);
 
-        $payment->update([
-            'transaction_id' => $invoice['id'],
-            'metadata' => array_merge($payment->metadata, [
+        $transaction->update([
+            'provider_transaction_id' => $invoice['id'],
+            'metadata' => array_merge($transaction->metadata ?? [], [
                 'invoice_url' => $invoice['invoice_url'],
                 'external_id' => $invoice['external_id'],
             ]),
@@ -161,25 +163,27 @@ class PaymentService
     /**
      * Process PayPal payment.
      */
-    protected function processPayPalPayment(Payment $payment): array
+    protected function processPayPalPayment(Transaction $transaction): array
     {
-        if (! $payment->payment_token) {
+        $paymentToken = $transaction->metadata['payment_token'] ?? null;
+
+        if (! $paymentToken) {
             return ['success' => false, 'message' => 'Payment token required'];
         }
 
         $order = $this->paypal->createOrder([
             'intent' => 'CAPTURE',
-            'amount' => $payment->amount,
-            'currency_code' => $payment->currency_code,
-            'reference_id' => "payment_{$payment->id}",
-            'description' => "Payment for invoice {$payment->invoice_id}",
-            'return_url' => route('payment.success', $payment->id),
-            'cancel_url' => route('payment.cancel', $payment->id),
+            'amount' => $transaction->amount,
+            'currency_code' => $transaction->currency,
+            'reference_id' => "payment_{$transaction->id}",
+            'description' => $transaction->description,
+            'return_url' => route('payment.success', $transaction->id),
+            'cancel_url' => route('payment.cancel', $transaction->id),
         ]);
 
-        $payment->update([
-            'transaction_id' => $order['id'],
-            'metadata' => array_merge($payment->metadata, [
+        $transaction->update([
+            'provider_transaction_id' => $order['id'],
+            'metadata' => array_merge($transaction->metadata ?? [], [
                 'order_id' => $order['id'],
             ]),
         ]);
@@ -198,19 +202,19 @@ class PaymentService
     /**
      * Handle successful payment.
      */
-    protected function handleSuccessfulPayment(Payment $payment, array $result): void
+    protected function handleSuccessfulPayment(Transaction $transaction, array $result): void
     {
-        $payment->update([
-            'status' => 'paid',
-            'transaction_id' => $result['transaction_id'] ?? $result['payment_intent_id'] ?? $result['order_id'] ?? $payment->transaction_id,
-            'metadata' => array_merge($payment->metadata, $result),
+        $transaction->update([
+            'status' => 'completed',
+            'provider_transaction_id' => $result['transaction_id'] ?? $result['payment_intent_id'] ?? $result['order_id'] ?? $transaction->provider_transaction_id,
+            'metadata' => array_merge($transaction->metadata ?? [], $result),
         ]);
 
         // Update invoice if exists
-        if ($payment->invoice) {
-            $invoice = $payment->invoice;
+        if ($transaction->invoice) {
+            $invoice = $transaction->invoice;
 
-            if ($invoice->status === 'unpaid') {
+            if ($invoice->status === 'pending') {
                 $invoice->update([
                     'status' => 'paid',
                     'paid_at' => now(),
@@ -221,8 +225,8 @@ class PaymentService
         }
 
         // Update subscription if exists
-        if ($payment->subscription) {
-            $subscription = $payment->subscription;
+        if ($transaction->subscription) {
+            $subscription = $transaction->subscription;
 
             if ($subscription->status === 'past_due') {
                 $subscription->update(['status' => 'active']);

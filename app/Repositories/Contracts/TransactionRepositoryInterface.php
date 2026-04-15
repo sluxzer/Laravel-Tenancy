@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Repositories\Contracts;
 
 use App\Models\Transaction;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 interface TransactionRepositoryInterface

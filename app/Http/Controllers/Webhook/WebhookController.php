@@ -60,13 +60,13 @@ class WebhookController extends Controller
     /**
      * Get a specific webhook.
      */
-    public function show(string $id): JsonResponse
+    public function show(string $webhook): JsonResponse
     {
         $tenant = tenancy()->tenant;
 
         $webhook = Webhook::where('tenant_id', $tenant->id)
             ->with(['events'])
-            ->findOrFail($id);
+            ->findOrFail($webhook);
 
         return response()->json([
             'success' => true,
@@ -88,7 +88,6 @@ class WebhookController extends Controller
             'events.*' => 'string',
             'secret' => 'nullable|string|max:255',
             'is_active' => 'boolean',
-            'description' => 'nullable|string',
         ]);
 
         $webhook = $this->webhookService->create(
@@ -97,8 +96,7 @@ class WebhookController extends Controller
             $validated['url'],
             $validated['events'],
             $validated['secret'] ?? null,
-            $validated['is_active'] ?? true,
-            $validated['description'] ?? null
+            $validated['is_active'] ?? true
         );
 
         return response()->json([
@@ -111,11 +109,11 @@ class WebhookController extends Controller
     /**
      * Update a webhook.
      */
-    public function update(Request $request, string $id): JsonResponse
+    public function update(Request $request, string $webhook): JsonResponse
     {
         $tenant = tenancy()->tenant;
 
-        $webhook = Webhook::where('tenant_id', $tenant->id)->findOrFail($id);
+        $webhook = Webhook::where('tenant_id', $tenant->id)->findOrFail($webhook);
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -124,7 +122,6 @@ class WebhookController extends Controller
             'events.*' => 'string',
             'secret' => 'nullable|string|max:255',
             'is_active' => 'boolean',
-            'description' => 'nullable|string',
         ]);
 
         $webhook = $this->webhookService->update($webhook, $validated);
@@ -139,11 +136,11 @@ class WebhookController extends Controller
     /**
      * Delete a webhook.
      */
-    public function destroy(string $id): JsonResponse
+    public function destroy(string $webhook): JsonResponse
     {
         $tenant = tenancy()->tenant;
 
-        $webhook = Webhook::where('tenant_id', $tenant->id)->findOrFail($id);
+        $webhook = Webhook::where('tenant_id', $tenant->id)->findOrFail($webhook);
         $this->webhookService->delete($webhook);
 
         return response()->json([
@@ -155,11 +152,11 @@ class WebhookController extends Controller
     /**
      * Toggle webhook status.
      */
-    public function toggle(string $id): JsonResponse
+    public function toggle(string $webhook): JsonResponse
     {
         $tenant = tenancy()->tenant;
 
-        $webhook = Webhook::where('tenant_id', $tenant->id)->findOrFail($id);
+        $webhook = Webhook::where('tenant_id', $tenant->id)->findOrFail($webhook);
         $webhook->update(['is_active' => ! $webhook->is_active]);
 
         return response()->json([
@@ -172,11 +169,11 @@ class WebhookController extends Controller
     /**
      * Test a webhook.
      */
-    public function test(string $id): JsonResponse
+    public function test(string $webhook): JsonResponse
     {
         $tenant = tenancy()->tenant;
 
-        $webhook = Webhook::where('tenant_id', $tenant->id)->findOrFail($id);
+        $webhook = Webhook::where('tenant_id', $tenant->id)->findOrFail($webhook);
 
         $result = $this->webhookService->test($webhook);
 
@@ -190,11 +187,11 @@ class WebhookController extends Controller
     /**
      * Regenerate webhook secret.
      */
-    public function regenerateSecret(string $id): JsonResponse
+    public function regenerateSecret(string $webhook): JsonResponse
     {
         $tenant = tenancy()->tenant;
 
-        $webhook = Webhook::where('tenant_id', $tenant->id)->findOrFail($id);
+        $webhook = Webhook::where('tenant_id', $tenant->id)->findOrFail($webhook);
         $webhook->update([
             'secret' => Str::random(32),
         ]);
@@ -212,13 +209,13 @@ class WebhookController extends Controller
     /**
      * Get webhook events.
      */
-    public function events(string $id): JsonResponse
+    public function events(Request $request, string $webhook): JsonResponse
     {
         $tenant = tenancy()->tenant;
 
-        $webhook = Webhook::where('tenant_id', $tenant->id)->findOrFail($id);
+        $webhook = Webhook::where('tenant_id', $tenant->id)->findOrFail($webhook);
 
-        $events = $webhook->webhookEvents()
+        $events = $webhook->events()
             ->orderBy('created_at', 'desc')
             ->paginate($request->input('per_page', 20));
 
@@ -237,12 +234,12 @@ class WebhookController extends Controller
     /**
      * Retry failed webhook event.
      */
-    public function retryEvent(string $webhookId, string $eventId): JsonResponse
+    public function retryEvent(string $webhook, string $eventId): JsonResponse
     {
         $tenant = tenancy()->tenant;
 
-        $webhook = Webhook::where('tenant_id', $tenant->id)->findOrFail($webhookId);
-        $event = $webhook->webhookEvents()->findOrFail($eventId);
+        $webhook = Webhook::where('tenant_id', $tenant->id)->findOrFail($webhook);
+        $event = $webhook->events()->findOrFail($eventId);
 
         $result = $this->webhookService->retryEvent($event);
 

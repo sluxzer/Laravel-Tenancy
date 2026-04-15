@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use App\Models\Invoice;
+use App\Models\Subscription;
 use App\Models\Tenant;
+use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Support\Facades\Event;
@@ -32,7 +34,9 @@ beforeEach(function () {
     // Fake events to prevent tenant creation from triggering seeding
     Event::fake();
 
+    Transaction::query()->delete();
     Invoice::query()->delete();
+    Subscription::query()->delete();
     User::query()->delete();
     Tenant::query()->delete();
 
@@ -63,166 +67,156 @@ afterEach(function () {
     }
 });
 
-it('can list invoices', function () {
+it('can list payment transactions', function () {
     $tenant = tenancy()->tenant;
     $user = User::factory()->create();
 
-    Invoice::factory()->for($tenant)->for($user)->count(3)->create();
+    Transaction::factory()
+        ->for($tenant)
+        ->for($user)
+        ->payment()
+        ->count(3)
+        ->create();
 
     actingAs($user)
-        ->get('/api/{$tenant->id}/billing/invoices')
+        ->get('/api/{tenant}/billing/payments')
         ->assertSuccessful()
         ->assertJsonStructure([
             'success',
             'data' => [
                 '*' => [
                     'id',
-                    'number',
-                    'total_amount',
+                    'type',
+                    'amount',
+                    'currency',
                     'status',
-                    'due_date',
+                    'provider',
                 ],
             ],
         ]);
 });
 
-it('can get a specific invoice', function () {
+it('can get a specific payment transaction', function () {
     $tenant = tenancy()->tenant;
     $user = User::factory()->create();
 
-    $invoice = Invoice::factory()->for($tenant)->for($user)->create();
+    $payment = Transaction::factory()
+        ->for($tenant)
+        ->for($user)
+        ->payment()
+        ->create();
 
     actingAs($user)
-        ->get("/api/{$tenant->id}/billing/invoices/{$invoice->id}")
+        ->get("/api/{tenant}/billing/payments/{$payment->id}")
         ->assertSuccessful()
         ->assertJson([
             'success' => true,
             'data' => [
-                'id' => $invoice->id,
-                'number' => $invoice->number,
+                'id' => $payment->id,
+                'type' => 'payment',
             ],
         ]);
 });
 
-it('can filter invoices by status', function () {
-    $tenant = tenancy()->tenant;
-    $user = User::factory()->create();
-
-    Invoice::factory()->for($tenant)->for($user)->paid()->count(2)->create();
-    Invoice::factory()->for($tenant)->for($user)->pending()->count(1)->create();
-
-    actingAs($user)
-        ->get('/api/{$tenant->id}/billing/invoices?status=paid')
-        ->assertSuccessful()
-        ->assertJsonCount(2, 'data');
-});
-
-it('can create an invoice', function () {
-    $tenant = tenancy()->tenant;
-    $user = User::factory()->create();
-
-    $invoiceData = [
-        'user_id' => $user->id,
-        'due_date' => now()->addDays(30)->toDateString(),
-        'items' => [
-            [
-                'description' => 'Test item',
-                'quantity' => 2,
-                'unit_price' => 50.00,
-            ],
-        ],
-        'currency' => 'USD',
-    ];
-
-    actingAs($user)
-        ->post('/api/{$tenant->id}/billing/invoices', $invoiceData)
-        ->assertCreated()
-        ->assertJson([
-            'success' => true,
-            'message' => 'Invoice created successfully',
-        ]);
-});
-
-it('can add item to invoice', function () {
+it('can create a payment transaction', function () {
     $tenant = tenancy()->tenant;
     $user = User::factory()->create();
 
     $invoice = Invoice::factory()->for($tenant)->for($user)->create();
 
-    $itemData = [
-        'description' => 'New item',
-        'quantity' => 1,
-        'unit_price' => 25.00,
+    $paymentData = [
+        'invoice_id' => $invoice->id,
+        'amount' => 100.00,
+        'currency' => 'USD',
+        'gateway' => 'stripe',
+        'description' => 'Test payment',
     ];
 
     actingAs($user)
-        ->post("/api/{$tenant->id}/billing/invoices/{$invoice->id}/items", $itemData)
+        ->post('/api/{tenant}/billing/payments', $paymentData)
         ->assertCreated()
         ->assertJson([
             'success' => true,
-            'message' => 'Item added successfully',
+            'message' => 'Payment created successfully',
         ]);
 });
 
-it('can mark invoice as paid', function () {
+it('can filter payments by status', function () {
     $tenant = tenancy()->tenant;
     $user = User::factory()->create();
 
-    $invoice = Invoice::factory()->for($tenant)->for($user)->pending()->create();
+    Transaction::factory()
+        ->for($tenant)
+        ->for($user)
+        ->payment()
+        ->completed()
+        ->count(2)
+        ->create();
 
-    $paymentData = [
-        'provider' => 'manual',
-        'provider_transaction_id' => 'TEST-123',
-        'description' => 'Manual payment',
-    ];
+    Transaction::factory()
+        ->for($tenant)
+        ->for($user)
+        ->payment()
+        ->pending()
+        ->count(1)
+        ->create();
 
     actingAs($user)
-        ->post("/api/{$tenant->id}/billing/invoices/{$invoice->id}/mark-paid", $paymentData)
+        ->get('/api/{tenant}/billing/payments?status=completed')
         ->assertSuccessful()
-        ->assertJson([
-            'success' => true,
-            'message' => 'Invoice marked as paid',
-        ]);
-
-    expect($invoice->fresh()->status)->toBe('paid');
+        ->assertJsonCount(2, 'data');
 });
 
-it('can cancel invoice', function () {
+it('can filter payments by provider', function () {
     $tenant = tenancy()->tenant;
     $user = User::factory()->create();
 
-    $invoice = Invoice::factory()->for($tenant)->for($user)->pending()->create();
+    Transaction::factory()
+        ->for($tenant)
+        ->for($user)
+        ->payment()
+        ->withProvider('stripe')
+        ->count(2)
+        ->create();
+
+    Transaction::factory()
+        ->for($tenant)
+        ->for($user)
+        ->payment()
+        ->withProvider('paypal')
+        ->count(1)
+        ->create();
 
     actingAs($user)
-        ->post("/api/{$tenant->id}/billing/invoices/{$invoice->id}/cancel", ['reason' => 'Test cancellation'])
+        ->get('/api/{tenant}/billing/payments?provider=stripe')
         ->assertSuccessful()
-        ->assertJson([
-            'success' => true,
-            'message' => 'Invoice cancelled successfully',
-        ]);
-
-    expect($invoice->fresh()->status)->toBe('cancelled');
+        ->assertJsonCount(2, 'data');
 });
 
-it('cannot delete paid invoice', function () {
+it('cannot cancel processed payment', function () {
     $tenant = tenancy()->tenant;
     $user = User::factory()->create();
 
-    $invoice = Invoice::factory()->for($tenant)->for($user)->paid()->create();
+    $payment = Transaction::factory()
+        ->for($tenant)
+        ->for($user)
+        ->payment()
+        ->completed()
+        ->create();
 
     actingAs($user)
-        ->delete("/api/{$tenant->id}/billing/invoices/{$invoice->id}")
+        ->post("/api/{tenant}/billing/payments/{$payment->id}/cancel")
         ->assertStatus(400)
         ->assertJson([
             'success' => false,
-            'message' => 'Cannot delete paid invoice',
+            'message' => 'Cannot cancel processed payment',
         ]);
 });
 
-it('requires authentication to access invoice endpoints', function () {
-    get('/api/test-tenant/billing/invoices')
+it('requires authentication to access payment endpoints', function () {
+    get('/api/test-tenant/billing/payments')
         ->assertUnauthorized();
 
-    get('/api/test-tenant/billing/invoices/1')
+    get('/api/test-tenant/billing/payments/1')
         ->assertUnauthorized();
 });

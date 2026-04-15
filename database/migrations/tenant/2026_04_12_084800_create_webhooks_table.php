@@ -10,11 +10,11 @@ return new class extends Migration
     {
         Schema::create('webhooks', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('tenant_id');
             $table->string('name');
             $table->string('url');
             $table->string('secret');
-            $table->json('events')->nullable(); // Array of event names to trigger
+            $table->json('events')->nullable();
             $table->boolean('is_active')->default(true);
             $table->json('headers')->nullable();
             $table->timestamps();

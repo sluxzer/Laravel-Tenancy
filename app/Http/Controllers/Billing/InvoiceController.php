@@ -39,10 +39,10 @@ class InvoiceController extends Controller
 
         if ($request->has('search')) {
             $search = $request->input('search');
-            $query->where('invoice_number', 'like', "%{$search}%");
+            $query->where('number', 'like', "%{$search}%");
         }
 
-        $invoices = $query->with(['items'])
+        $invoices = $query->with(['items', 'subscription'])
             ->orderBy('created_at', 'desc')
             ->paginate($request->input('per_page', 20));
 
@@ -66,7 +66,7 @@ class InvoiceController extends Controller
         $tenant = tenancy()->tenant;
 
         $invoice = Invoice::where('tenant_id', $tenant->id)
-            ->with(['items', 'subscription', 'payment'])
+            ->with(['items', 'subscription', 'transactions'])
             ->findOrFail($id);
 
         return response()->json([
@@ -83,17 +83,22 @@ class InvoiceController extends Controller
         $tenant = tenancy()->tenant;
 
         $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
             'subscription_id' => 'nullable|exists:subscriptions,id',
             'due_date' => 'required|date',
             'items' => 'required|array',
             'items.*.description' => 'required|string',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
-            'currency_code' => 'required|string|max:3',
+            'currency' => 'required|string|max:3',
             'notes' => 'nullable|string',
         ]);
 
-        $invoice = $this->invoiceService->createInvoice($tenant, $validated);
+        $invoiceData = array_merge($validated, [
+            'tenant_id' => $tenant->id,
+        ]);
+
+        $invoice = $this->invoiceService->createInvoice($invoiceData);
 
         return response()->json([
             'success' => true,
@@ -113,7 +118,7 @@ class InvoiceController extends Controller
 
         $validated = $request->validate([
             'due_date' => 'sometimes|date',
-            'status' => 'sometimes|in:draft,sent,paid,overdue,cancelled',
+            'status' => 'sometimes|in:pending,paid,overdue,cancelled',
             'notes' => 'nullable|string',
         ]);
 
@@ -147,43 +152,6 @@ class InvoiceController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Invoice deleted successfully',
-        ]);
-    }
-
-    /**
-     * Send invoice to customer.
-     */
-    public function send(string $id): JsonResponse
-    {
-        $tenant = tenancy()->tenant;
-
-        $invoice = Invoice::where('tenant_id', $tenant->id)->findOrFail($id);
-
-        $this->invoiceService->sendInvoice($invoice);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Invoice sent successfully',
-            'data' => $invoice,
-        ]);
-    }
-
-    /**
-     * Generate invoice PDF.
-     */
-    public function download(string $id): JsonResponse
-    {
-        $tenant = tenancy()->tenant;
-
-        $invoice = Invoice::where('tenant_id', $tenant->id)->findOrFail($id);
-
-        $pdfPath = $this->invoiceService->generatePdf($invoice);
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'pdf_url' => $pdfPath,
-            ],
         ]);
     }
 
@@ -222,9 +190,63 @@ class InvoiceController extends Controller
         $item = $invoice->items()->findOrFail($itemId);
         $item->delete();
 
+        // Recalculate totals
+        $totals = $this->invoiceService->calculateTotals($invoice);
+        $invoice->update([
+            'subtotal' => $totals['subtotal'],
+            'total_amount' => $totals['total_amount'],
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Item removed successfully',
+        ]);
+    }
+
+    /**
+     * Mark invoice as paid.
+     */
+    public function markPaid(Request $request, string $id): JsonResponse
+    {
+        $tenant = tenancy()->tenant;
+
+        $invoice = Invoice::where('tenant_id', $tenant->id)->findOrFail($id);
+
+        $validated = $request->validate([
+            'provider' => 'required|string',
+            'provider_transaction_id' => 'nullable|string',
+            'description' => 'nullable|string',
+            'metadata' => 'nullable|array',
+        ]);
+
+        $invoice = $this->invoiceService->markAsPaid($invoice, $validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Invoice marked as paid',
+            'data' => $invoice->load(['items', 'subscription', 'transactions']),
+        ]);
+    }
+
+    /**
+     * Cancel invoice.
+     */
+    public function cancel(Request $request, string $id): JsonResponse
+    {
+        $tenant = tenancy()->tenant;
+
+        $invoice = Invoice::where('tenant_id', $tenant->id)->findOrFail($id);
+
+        $validated = $request->validate([
+            'reason' => 'nullable|string',
+        ]);
+
+        $invoice = $this->invoiceService->cancelInvoice($invoice, $validated['reason'] ?? null);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Invoice cancelled successfully',
+            'data' => $invoice->load(['items', 'subscription']),
         ]);
     }
 }

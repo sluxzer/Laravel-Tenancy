@@ -114,6 +114,18 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
+        'central' => [
+            'driver' => env('DB_CONNECTION', 'sqlite'),
+            'url' => env('CENTRAL_DB_URL'),
+            'database' => env('CENTRAL_DB_DATABASE', database_path('database.sqlite')),
+            'prefix' => '',
+            'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+            'busy_timeout' => null,
+            'journal_mode' => null,
+            'synchronous' => null,
+            'transaction_mode' => 'DEFERRED',
+        ],
+
     ],
 
     /*

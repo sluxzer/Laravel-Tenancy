@@ -7,6 +7,7 @@ namespace App\Exceptions;
 class ValidationException extends DomainException
 {
     protected string $errorCode = 'VALIDATION_ERROR';
+
     protected array $errors = [];
 
     public function __construct(string $message, array $errors = [], ?int $status = 422)

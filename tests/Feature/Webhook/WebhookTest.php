@@ -2,25 +2,68 @@
 
 declare(strict_types=1);
 
+use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Webhook;
+use Illuminate\Events\Dispatcher;
+use Illuminate\Support\Facades\Event;
+use Stancl\Tenancy\Bootstrappers\DatabaseSessionBootstrapper;
+use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
+use Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper;
+use Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper;
+use Stancl\Tenancy\Jobs\CreateDatabase;
+use Stancl\Tenancy\Jobs\DeleteDatabase;
+use Stancl\Tenancy\Jobs\MigrateDatabase;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
 use function Pest\Laravel\post;
 
 beforeEach(function () {
-    Webhook::query()->delete();
+    config(['tenancy.bootstrappers' => [
+        DatabaseTenancyBootstrapper::class,
+        FilesystemTenancyBootstrapper::class,
+        QueueTenancyBootstrapper::class,
+        DatabaseSessionBootstrapper::class,
+    ]]);
+
+    Event::fake();
+
+    Tenant::query()->delete();
     User::query()->delete();
+
+    $tenant = Tenant::factory()->make();
+    $tenant->id = (string) random_int(1, 999999);
+    $tenant->save();
+
+    Event::swap(new Dispatcher);
+
+    CreateDatabase::dispatchSync($tenant);
+    MigrateDatabase::dispatchSync($tenant);
+
+    Webhook::query()->delete();
+
+    tenancy()->initialize($tenant);
+});
+
+afterEach(function () {
+    $tenant = tenancy()->tenant;
+    if ($tenant) {
+        try {
+            DeleteDatabase::dispatchSync($tenant);
+        } catch (Exception $e) {
+        }
+    }
 });
 
 it('can list webhooks', function () {
+    $tenant = tenancy()->tenant;
     $user = User::factory()->create();
-    Webhook::factory()->forTenant(fake()->numberBetween(1, 10))->count(3)->create();
+    Webhook::factory()->for($tenant)->count(3)->create();
 
     actingAs($user)
-        ->get('/api/webhooks/webhooks')
-        ->assertStatus(200)
+        ->get("/api/{$tenant->id}/webhooks/webhooks")
+        ->assertSuccessful()
         ->assertJsonStructure([
             'success',
             'data' => [
@@ -36,15 +79,16 @@ it('can list webhooks', function () {
 });
 
 it('can create a webhook', function () {
+    $tenant = tenancy()->tenant;
     $user = User::factory()->create();
 
     actingAs($user)
-        ->post('/api/webhooks/webhooks', [
+        ->post("/api/{$tenant->id}/webhooks/webhooks", [
             'name' => 'Test Webhook',
             'url' => 'https://example.com/webhook',
             'events' => ['subscription.created', 'invoice.paid'],
         ])
-        ->assertStatus(201)
+        ->assertCreated()
         ->assertJson([
             'success' => true,
             'message' => 'Webhook created successfully',
@@ -52,15 +96,16 @@ it('can create a webhook', function () {
 });
 
 it('can update a webhook', function () {
+    $tenant = tenancy()->tenant;
     $user = User::factory()->create();
-    $webhook = Webhook::factory()->create();
+    $webhook = Webhook::factory()->for($tenant)->create();
 
     actingAs($user)
-        ->put("/api/webhooks/webhooks/{$webhook->id}", [
+        ->put("/api/{$tenant->id}/webhooks/webhooks/{$webhook->id}", [
             'name' => 'Updated Webhook',
             'url' => 'https://example.com/updated',
         ])
-        ->assertStatus(200)
+        ->assertSuccessful()
         ->assertJson([
             'success' => true,
             'message' => 'Webhook updated successfully',
@@ -68,12 +113,13 @@ it('can update a webhook', function () {
 });
 
 it('can delete a webhook', function () {
+    $tenant = tenancy()->tenant;
     $user = User::factory()->create();
-    $webhook = Webhook::factory()->create();
+    $webhook = Webhook::factory()->for($tenant)->create();
 
     actingAs($user)
-        ->delete("/api/webhooks/webhooks/{$webhook->id}")
-        ->assertStatus(200)
+        ->delete("/api/{$tenant->id}/webhooks/webhooks/{$webhook->id}")
+        ->assertSuccessful()
         ->assertJson([
             'success' => true,
             'message' => 'Webhook deleted successfully',
@@ -83,33 +129,36 @@ it('can delete a webhook', function () {
 });
 
 it('can toggle webhook status', function () {
+    $tenant = tenancy()->tenant;
     $user = User::factory()->create();
-    $webhook = Webhook::factory()->create(['is_active' => true]);
+    $webhook = Webhook::factory()->for($tenant)->create(['is_active' => true]);
 
     actingAs($user)
-        ->post("/api/webhooks/webhooks/{$webhook->id}/toggle")
-        ->assertStatus(200);
+        ->post("/api/{$tenant->id}/webhooks/webhooks/{$webhook->id}/toggle")
+        ->assertSuccessful();
 
     expect($webhook->fresh()->is_active)->toBeFalse();
 });
 
 it('can test a webhook', function () {
+    $tenant = tenancy()->tenant;
     $user = User::factory()->create();
-    $webhook = Webhook::factory()->create();
+    $webhook = Webhook::factory()->for($tenant)->create();
 
     actingAs($user)
-        ->post("/api/webhooks/webhooks/{$webhook->id}/test")
-        ->assertStatus(200);
+        ->post("/api/{$tenant->id}/webhooks/webhooks/{$webhook->id}/test")
+        ->assertSuccessful();
 });
 
 it('can regenerate webhook secret', function () {
+    $tenant = tenancy()->tenant;
     $user = User::factory()->create();
-    $webhook = Webhook::factory()->create();
+    $webhook = Webhook::factory()->for($tenant)->create();
     $oldSecret = $webhook->secret;
 
     actingAs($user)
-        ->post("/api/webhooks/webhooks/{$webhook->id}/regenerate-secret")
-        ->assertStatus(200)
+        ->post("/api/{$tenant->id}/webhooks/webhooks/{$webhook->id}/regenerate-secret")
+        ->assertSuccessful()
         ->assertJson([
             'success' => true,
             'message' => 'Webhook secret regenerated successfully',
@@ -119,9 +168,11 @@ it('can regenerate webhook secret', function () {
 });
 
 it('requires authentication to access webhook endpoints', function () {
-    get('/api/webhooks/webhooks')
-        ->assertStatus(401);
+    $tenant = tenancy()->tenant;
 
-    post('/api/webhooks/webhooks', [])
-        ->assertStatus(401);
+    get("/api/{$tenant->id}/webhooks/webhooks")
+        ->assertUnauthorized();
+
+    post("/api/{$tenant->id}/webhooks/webhooks", [])
+        ->assertUnauthorized();
 });

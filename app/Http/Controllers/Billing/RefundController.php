@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Billing;
 
 use App\Http\Controllers\Controller;
 use App\Models\Refund;
+use App\Models\Transaction;
 use App\Services\RefundService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +17,7 @@ use Illuminate\Http\Request;
  *
  * Tenant-level refund management.
  */
-class RefundController extends Controller
+class RefundController
 {
     protected RefundService $refundService;
 
@@ -38,7 +39,7 @@ class RefundController extends Controller
             $query->where('status', $request->input('status'));
         }
 
-        $refunds = $query->with(['payment', 'processedBy'])
+        $refunds = $query->with(['transaction', 'invoice', 'processedBy'])
             ->orderBy('created_at', 'desc')
             ->paginate($request->input('per_page', 20));
 
@@ -62,7 +63,7 @@ class RefundController extends Controller
         $tenant = tenancy()->tenant;
 
         $refund = Refund::where('tenant_id', $tenant->id)
-            ->with(['payment', 'processedBy'])
+            ->with(['transaction', 'invoice', 'processedBy'])
             ->findOrFail($id);
 
         return response()->json([
@@ -79,24 +80,29 @@ class RefundController extends Controller
         $tenant = tenancy()->tenant;
 
         $validated = $request->validate([
-            'payment_id' => 'required|exists:payments,id',
+            'transaction_id' => 'required|exists:transactions,id',
             'amount' => 'required|numeric|min:0',
             'reason' => 'nullable|string',
             'notes' => 'nullable|string',
         ]);
 
+        $transaction = Transaction::where('tenant_id', $tenant->id)
+            ->findOrFail($validated['transaction_id']);
+
         $refund = $this->refundService->createRefund(
-            $tenant,
-            $validated['payment_id'],
+            $transaction,
             $validated['amount'],
-            $validated['reason'] ?? null,
-            $validated['notes'] ?? null
+            $validated['reason'] ?? null
         );
+
+        if ($validated['notes'] ?? null) {
+            $refund->update(['notes' => $validated['notes']]);
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Refund created successfully',
-            'data' => $refund->load(['payment', 'processedBy']),
+            'data' => $refund->load(['transaction', 'invoice']),
         ], 201);
     }
 
@@ -128,7 +134,7 @@ class RefundController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Refund processed successfully',
-            'data' => $result['refund'],
+            'data' => $refund->load(['transaction', 'invoice']),
         ]);
     }
 
@@ -148,12 +154,19 @@ class RefundController extends Controller
             ], 400);
         }
 
-        $refund->update(['status' => 'cancelled']);
+        $result = $this->refundService->cancelRefund($refund);
+
+        if (! $result['success']) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'],
+            ], 400);
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Refund cancelled successfully',
-            'data' => $refund,
+            'data' => $refund->load(['transaction', 'invoice']),
         ]);
     }
 
@@ -171,15 +184,15 @@ class RefundController extends Controller
             ? Carbon::parse($request->input('end_date'))
             : now();
 
-        $summary = Refund::where('tenant_id', $tenant->id)
+        $refunds = Refund::where('tenant_id', $tenant->id)
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->selectRaw('
-                status,
-                SUM(amount) as total_amount,
-                COUNT(*) as count
-            ')
-            ->groupBy('status')
             ->get();
+
+        $summary = $refunds->groupBy('status')->map(fn ($group) => [
+            'status' => $group->first()->status,
+            'total_amount' => $group->sum('amount'),
+            'count' => $group->count(),
+        ])->values()->all();
 
         return response()->json([
             'success' => true,

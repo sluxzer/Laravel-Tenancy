@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Billing;
 
 use App\Http\Controllers\Controller;
-use App\Models\Payment;
+use App\Models\Transaction;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 /**
  * Payment Controller (Tenant)
  *
- * Tenant-level payment management.
+ * Tenant-level payment transaction management.
  */
 class PaymentController extends Controller
 {
@@ -25,57 +25,59 @@ class PaymentController extends Controller
     }
 
     /**
-     * Get all payments for tenant.
+     * Get all payment transactions for tenant.
      */
     public function index(Request $request): JsonResponse
     {
         $tenant = tenancy()->tenant;
 
-        $query = Payment::where('tenant_id', $tenant->id);
+        $query = Transaction::where('tenant_id', $tenant->id)
+            ->where('type', 'payment');
 
         if ($request->has('status')) {
             $query->where('status', $request->input('status'));
         }
 
-        if ($request->has('payment_method')) {
-            $query->where('payment_method', $request->input('payment_method'));
+        if ($request->has('provider')) {
+            $query->where('provider', $request->input('provider'));
         }
 
-        $payments = $query->with(['invoice', 'subscription'])
+        $transactions = $query->with(['invoice', 'subscription'])
             ->orderBy('created_at', 'desc')
             ->paginate($request->input('per_page', 20));
 
         return response()->json([
             'success' => true,
-            'data' => $payments->items(),
+            'data' => $transactions->items(),
             'pagination' => [
-                'total' => $payments->total(),
-                'per_page' => $payments->perPage(),
-                'current_page' => $payments->currentPage(),
-                'last_page' => $payments->lastPage(),
+                'total' => $transactions->total(),
+                'per_page' => $transactions->perPage(),
+                'current_page' => $transactions->currentPage(),
+                'last_page' => $transactions->lastPage(),
             ],
         ]);
     }
 
     /**
-     * Get a specific payment.
+     * Get a specific payment transaction.
      */
     public function show(string $id): JsonResponse
     {
         $tenant = tenancy()->tenant;
 
-        $payment = Payment::where('tenant_id', $tenant->id)
+        $transaction = Transaction::where('tenant_id', $tenant->id)
+            ->where('type', 'payment')
             ->with(['invoice', 'subscription'])
             ->findOrFail($id);
 
         return response()->json([
             'success' => true,
-            'data' => $payment,
+            'data' => $transaction,
         ]);
     }
 
     /**
-     * Create a payment.
+     * Create a payment transaction.
      */
     public function store(Request $request): JsonResponse
     {
@@ -85,20 +87,20 @@ class PaymentController extends Controller
             'invoice_id' => 'nullable|exists:invoices,id',
             'subscription_id' => 'nullable|exists:subscriptions,id',
             'amount' => 'required|numeric|min:0',
-            'currency_code' => 'required|string|max:3',
-            'payment_method' => 'required|string',
-            'payment_token' => 'nullable|string',
+            'currency' => 'required|string|max:3',
             'gateway' => 'required|string',
             'transaction_id' => 'nullable|string',
+            'description' => 'nullable|string',
             'metadata' => 'nullable|array',
+            'payment_token' => 'nullable|string',
         ]);
 
-        $payment = $this->paymentService->createPayment($tenant, $validated);
+        $transaction = $this->paymentService->createPayment($tenant, $validated);
 
         return response()->json([
             'success' => true,
             'message' => 'Payment created successfully',
-            'data' => $payment->load(['invoice', 'subscription']),
+            'data' => $transaction->load(['invoice', 'subscription']),
         ], 201);
     }
 
@@ -109,16 +111,18 @@ class PaymentController extends Controller
     {
         $tenant = tenancy()->tenant;
 
-        $payment = Payment::where('tenant_id', $tenant->id)->findOrFail($id);
+        $transaction = Transaction::where('tenant_id', $tenant->id)
+            ->where('type', 'payment')
+            ->findOrFail($id);
 
-        if ($payment->status !== 'pending') {
+        if ($transaction->status !== 'pending') {
             return response()->json([
                 'success' => false,
                 'message' => 'Payment has already been processed',
             ], 400);
         }
 
-        $result = $this->paymentService->processPayment($payment);
+        $result = $this->paymentService->processPayment($transaction);
 
         if (! $result['success']) {
             return response()->json([
@@ -130,7 +134,7 @@ class PaymentController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Payment processed successfully',
-            'data' => $result['payment'],
+            'data' => $result['payment'] ?? $transaction->fresh(),
         ]);
     }
 
@@ -141,21 +145,23 @@ class PaymentController extends Controller
     {
         $tenant = tenancy()->tenant;
 
-        $payment = Payment::where('tenant_id', $tenant->id)->findOrFail($id);
+        $transaction = Transaction::where('tenant_id', $tenant->id)
+            ->where('type', 'payment')
+            ->findOrFail($id);
 
-        if ($payment->status !== 'pending') {
+        if ($transaction->status !== 'pending') {
             return response()->json([
                 'success' => false,
                 'message' => 'Cannot cancel processed payment',
             ], 400);
         }
 
-        $payment->update(['status' => 'cancelled']);
+        $transaction->update(['status' => 'failed']);
 
         return response()->json([
             'success' => true,
             'message' => 'Payment cancelled successfully',
-            'data' => $payment,
+            'data' => $transaction,
         ]);
     }
 

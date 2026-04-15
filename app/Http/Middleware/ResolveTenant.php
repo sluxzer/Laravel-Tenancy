@@ -26,7 +26,7 @@ class ResolveTenant
             $tenantId = $request->route('tenant');
 
             if (! $tenantId) {
-                throw new TenantCouldNotBeIdentifiedException();
+                throw new TenantCouldNotBeIdentifiedException;
             }
 
             // Initialize tenancy with the tenant id

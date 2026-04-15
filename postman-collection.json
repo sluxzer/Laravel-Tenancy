@@ -1,0 +1,1512 @@
+{
+  "info": {
+    "name": "SaaS Tenancy Starter API",
+    "description": "Complete API collection for SaaS Tenancy Starter backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "saas-tenancy-starter-api-v1"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api",
+      "type": "string"
+    },
+    {
+      "key": "tenant_id",
+      "value": "your-tenant-id",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register (Global)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"Password123!\",\n  \"password_confirmation\": \"Password123!\",\n  \"company_name\": \"Acme Inc\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set(\"access_token\", jsonData.data.token);",
+                  "    console.log('Token saved:', jsonData.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"Password123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/forgot-password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "forgot-password"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"reset_token\",\n  \"email\": \"john@example.com\",\n  \"password\": \"NewPassword123!\",\n  \"password_confirmation\": \"NewPassword123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/reset-password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "reset-password"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Billing",
+      "item": [
+        {
+          "name": "Subscriptions",
+          "item": [
+            {
+              "name": "List Subscriptions",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/subscriptions",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "subscriptions"],
+                  "query": [
+                    {
+                      "key": "per_page",
+                      "value": "20"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Current Subscription",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/subscriptions/:subscription",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "subscriptions", ":subscription"],
+                  "variable": [
+                    {
+                      "key": "subscription",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Subscription",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"plan_id\": 1,\n  \"billing_cycle\": \"monthly\",\n  \"user_id\": 1,\n  \"metadata\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/subscriptions",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "subscriptions"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Upgrade Subscription",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"plan_id\": 2\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/subscriptions/:subscription/upgrade",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "subscriptions", ":subscription", "upgrade"],
+                  "variable": [
+                    {
+                      "key": "subscription",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Downgrade Subscription",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"plan_id\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/subscriptions/:subscription/downgrade",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "subscriptions", ":subscription", "downgrade"],
+                  "variable": [
+                    {
+                      "key": "subscription",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Pause Subscription",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/subscriptions/:subscription/pause",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "subscriptions", ":subscription", "pause"],
+                  "variable": [
+                    {
+                      "key": "subscription",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Resume Subscription",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/subscriptions/:subscription/resume",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "subscriptions", ":subscription", "resume"],
+                  "variable": [
+                    {
+                      "key": "subscription",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Cancel Subscription",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"No longer needed\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/subscriptions/:subscription/cancel",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "subscriptions", ":subscription", "cancel"],
+                  "variable": [
+                    {
+                      "key": "subscription",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Renew Subscription",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/subscriptions/:subscription/renew",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "subscriptions", ":subscription", "renew"],
+                  "variable": [
+                    {
+                      "key": "subscription",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Apply Voucher",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"code\": \"VOUCHER20\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/subscriptions/:subscription/apply-voucher",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "subscriptions", ":subscription", "apply-voucher"],
+                  "variable": [
+                    {
+                      "key": "subscription",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Invoices",
+          "item": [
+            {
+              "name": "List Invoices",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/invoices",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "invoices"],
+                  "query": [
+                    {
+                      "key": "per_page",
+                      "value": "20"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Invoice",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/invoices/:invoice",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "invoices", ":invoice"],
+                  "variable": [
+                    {
+                      "key": "invoice",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Invoice",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"user_id\": 1,\n  \"subscription_id\": 1,\n  \"due_date\": \"2024-02-15\",\n  \"items\": [\n    {\n      \"description\": \"Monthly subscription\",\n      \"quantity\": 1,\n      \"unit_price\": 100\n    }\n  ],\n  \"currency\": \"USD\",\n  \"notes\": \"Optional notes\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/invoices",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "invoices"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Invoice",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"due_date\": \"2024-02-20\",\n  \"status\": \"pending\",\n  \"notes\": \"Updated notes\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/invoices/:invoice",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "invoices", ":invoice"],
+                  "variable": [
+                    {
+                      "key": "invoice",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Invoice",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/invoices/:invoice",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "invoices", ":invoice"],
+                  "variable": [
+                    {
+                      "key": "invoice",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Add Invoice Item",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"description\": \"Additional service\",\n  \"quantity\": 1,\n  \"unit_price\": 50\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/invoices/:id/items",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "invoices", ":id", "items"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Remove Invoice Item",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/invoices/:id/items/:itemId",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "invoices", ":id", "items", ":itemId"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    },
+                    {
+                      "key": "itemId",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Download Invoice",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/invoices/:id/download",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "invoices", ":id", "download"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Send Invoice",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/invoices/:id/send",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "invoices", ":id", "send"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Payments",
+          "item": [
+            {
+              "name": "List Payments",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/payments",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "payments"],
+                  "query": [
+                    {
+                      "key": "per_page",
+                      "value": "20"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Payment",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/payments/:payment",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "payments", ":payment"],
+                  "variable": [
+                    {
+                      "key": "payment",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Payment",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"invoice_id\": 1,\n  \"subscription_id\": 1,\n  \"amount\": 110,\n  \"currency\": \"USD\",\n  \"gateway\": \"stripe\",\n  \"transaction_id\": \"pi_123456\",\n  \"description\": \"Payment for invoice\",\n  \"metadata\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/payments",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "payments"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Payment Methods",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/payments/methods",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "payments", "methods"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Add Payment Method",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"payment_method\": \"card\",\n  \"payment_token\": \"pm_123456\",\n  \"is_default\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/payments/methods",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "payments", "methods"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Remove Payment Method",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/payments/methods/:methodId",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "payments", "methods", ":methodId"],
+                  "variable": [
+                    {
+                      "key": "methodId",
+                      "value": "pm_123456"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Set Default Payment Method",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/payments/methods/:methodId/default",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "payments", "methods", ":methodId", "default"],
+                  "variable": [
+                    {
+                      "key": "methodId",
+                      "value": "pm_123456"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Transactions",
+          "item": [
+            {
+              "name": "List Transactions",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/transactions",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "transactions"],
+                  "query": [
+                    {
+                      "key": "per_page",
+                      "value": "20"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Transaction",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/transactions/:transaction",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "transactions", ":transaction"],
+                  "variable": [
+                    {
+                      "key": "transaction",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Transaction",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"invoice_id\": 1,\n  \"subscription_id\": 1,\n  \"type\": \"payment\",\n  \"provider\": \"stripe\",\n  \"provider_transaction_id\": \"pi_123456\",\n  \"amount\": 110,\n  \"currency\": \"USD\",\n  \"description\": \"Payment\",\n  \"status\": \"completed\",\n  \"metadata\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/transactions",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "transactions"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Transaction Summary",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/transactions/summary",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "transactions", "summary"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Refunds",
+          "item": [
+            {
+              "name": "List Refunds",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/refunds",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "refunds"],
+                  "query": [
+                    {
+                      "key": "per_page",
+                      "value": "20"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Refund",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/refunds/:refund",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "refunds", ":refund"],
+                  "variable": [
+                    {
+                      "key": "refund",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Refund",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"transaction_id\": 1,\n  \"amount\": 110,\n  \"reason\": \"Service issue\",\n  \"notes\": \"Optional notes\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/refunds",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "refunds"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Process Refund",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/refunds/:id/process",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "refunds", ":id", "process"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Cancel Refund",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/refunds/:id/cancel",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "refunds", ":id", "cancel"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Refund Summary",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/refunds/summary",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "refunds", "summary"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Currency & Tax",
+          "item": [
+            {
+              "name": "Get Exchange Rate",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/currency/exchange-rate?from=USD&to=EUR",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "currency", "exchange-rate"],
+                  "query": [
+                    {
+                      "key": "from",
+                      "value": "USD"
+                    },
+                    {
+                      "key": "to",
+                      "value": "EUR"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Convert Currency",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 100,\n  \"from\": \"USD\",\n  \"to\": \"EUR\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/currency/convert",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "currency", "convert"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Tax Settings",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/tax/settings",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "tax", "settings"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Tax Settings",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/tax/settings",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "tax", "settings"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Calculate Tax",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 100,\n  \"country\": \"US\",\n  \"region\": \"CA\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/{{tenant_id}}/billing/tax/calculate",
+                  "host": ["{{base_url}}"],
+                  "path": ["{{tenant_id}}", "billing", "tax", "calculate"]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}/user",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}", "user"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane@example.com\",\n  \"phone\": \"+1234567890\",\n  \"avatar\": \"https://example.com/avatar.jpg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}/user",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}", "user"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"OldPassword123!\",\n  \"password\": \"NewPassword123!\",\n  \"password_confirmation\": \"NewPassword123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}/user/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}", "user", "change-password"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get API Tokens",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}/user/tokens",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}", "user", "tokens"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create API Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My App\",\n  \"abilities\": [\"*\"],\n  \"expires_at\": \"2024-12-31\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}/user/tokens",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}", "user", "tokens"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete API Token",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}/user/tokens/:id",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}", "user", "tokens", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Roles & Permissions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}/user/roles-permissions",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}", "user", "roles-permissions"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "List Webhooks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}/webhooks/webhooks",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}", "webhooks", "webhooks"],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Payment Webhook\",\n  \"url\": \"https://example.com/webhook\",\n  \"events\": [\"payment.completed\", \"payment.failed\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}/webhooks/webhooks",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}", "webhooks", "webhooks"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Webhook",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+              "key": "Content-Type",
+              "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}/webhooks/webhooks/:webhook",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}", "webhooks", "webhooks", ":webhook"],
+              "variable": [
+                {
+                  "key": "webhook",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Webhook",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}/webhooks/webhooks/:webhook",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}", "webhooks", "webhooks", ":webhook"],
+              "variable": [
+                {
+                  "key": "webhook",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Webhook",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}/webhooks/webhooks/:webhook/toggle",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}", "webhooks", "webhooks", ":webhook", "toggle"],
+              "variable": [
+                {
+                  "key": "webhook",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Test Webhook",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}/webhooks/webhooks/:webhook/test",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}", "webhooks", "webhooks", ":webhook", "test"],
+              "variable": [
+                {
+                  "key": "webhook",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Regenerate Secret",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}/webhooks/webhooks/:webhook/regenerate-secret",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}", "webhooks", "webhooks", ":webhook", "regenerate-secret"],
+              "variable": [
+                {
+                  "key": "webhook",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Webhook Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}/webhooks/webhooks/:webhook/events",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}", "webhooks", "webhooks", ":webhook", "events"],
+              "variable": [
+                {
+                  "key": "webhook",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}", "health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}/stats",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}", "stats"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Recent Activities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/{{tenant_id}}/recent-activities",
+              "host": ["{{base_url}}"],
+              "path": ["{{tenant_id}}", "recent-activities"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
