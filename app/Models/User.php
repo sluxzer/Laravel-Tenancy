@@ -15,13 +15,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable(['name', 'email', 'password', 'tenant_id', 'two_factor_enabled', 'rate_limit_bypass'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable, WithEagerLoading, WithQueryCache;
+    use HasApiTokens, HasFactory, Notifiable, TwoFactorAuthenticatable, WithEagerLoading, WithQueryCache;
 
     /**
      * Get the attributes that should be cast.

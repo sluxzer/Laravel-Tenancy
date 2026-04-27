@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Sanctum\NewAccessToken;
 
@@ -20,6 +23,38 @@ use Laravel\Sanctum\NewAccessToken;
  */
 class TenantAuthController extends Controller
 {
+    /**
+     * Register a new user and create their tenant.
+     */
+    public function register(RegisterRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        $tenant = Tenant::create([
+            'id' => Str::uuid()->toString(),
+            'name' => $validated['tenant_name'],
+            'email' => $validated['email'],
+        ]);
+
+        $user->update(['tenant_id' => $tenant->id]);
+
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Registration successful',
+            'token' => $token,
+            'tenant_id' => $tenant->id,
+            'user' => $user,
+        ], 201);
+    }
+
     /**
      * Get authenticated user.
      */
