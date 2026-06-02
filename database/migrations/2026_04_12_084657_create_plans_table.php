@@ -15,8 +15,11 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->decimal('price_monthly', 10, 2);
             $table->decimal('price_yearly', 10, 2)->nullable();
+            $table->string('currency_code')->default('USD');
+            $table->integer('trial_days')->default(0);
             $table->json('features')->nullable();
-            $table->integer('max_users')->default(1);
+            $table->integer('max_users')->nullable();
+            $table->integer('max_projects')->nullable();
             $table->integer('max_storage_mb')->nullable();
             $table->boolean('is_active')->default(true);
             $table->integer('sort_order')->default(0);

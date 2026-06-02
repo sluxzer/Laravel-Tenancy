@@ -15,6 +15,7 @@ return new class extends Migration
             $table->string('key')->unique();
             $table->text('description')->nullable();
             $table->boolean('is_enabled')->default(true);
+            $table->boolean('is_public')->default(false);
             $table->json('metadata')->nullable();
             $table->timestamps();
         });

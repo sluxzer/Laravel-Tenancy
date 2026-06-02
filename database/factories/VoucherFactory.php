@@ -32,11 +32,27 @@ class VoucherFactory extends Factory
         ];
     }
 
+    public function fixedAmount(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => 'fixed',
+            'value' => 50.0,
+        ]);
+    }
+
+    public function freeTrial(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => 'free_trial',
+            'value' => 30,
+        ]);
+    }
+
     public function percentage(): static
     {
         return $this->state(fn (array $attributes) => [
             'type' => 'percentage',
-            'value' => fake()->numberBetween(5, 50),
+            'value' => 20.0,
         ]);
     }
 

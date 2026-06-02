@@ -24,6 +24,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 Route::middleware('web')
                     ->domain($domain)
                     ->group(base_path('routes/web.php'));
+
+                Route::middleware(['web', 'auth'])
+                    ->domain($domain)
+                    ->group(base_path('routes/settings.php'));
             }
 
             // Load main API routes (handles tenant resolution internally)

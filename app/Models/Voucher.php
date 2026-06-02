@@ -18,15 +18,23 @@ class Voucher extends Model
         'description',
         'type',
         'value',
-        'plan_id',
+        'currency_code',
+        'min_amount',
+        'max_discount',
+        'plan_ids',
         'max_uses',
         'used_count',
-        'expires_at',
+        'valid_from',
+        'valid_until',
+        'metadata',
         'is_active',
     ];
 
     protected $casts = [
-        'expires_at' => 'datetime',
+        'plan_ids' => 'array',
+        'valid_from' => 'datetime',
+        'valid_until' => 'datetime',
+        'metadata' => 'array',
         'is_active' => 'boolean',
     ];
 

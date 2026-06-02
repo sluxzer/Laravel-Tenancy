@@ -95,7 +95,6 @@ it('can apply percentage voucher', function () {
 it('can apply fixed amount voucher', function () {
     $service = new VoucherService;
     $user = User::factory()->create();
-    $plan = Plan::factory()->create(['price_monthly' => 100]);
     $voucher = Voucher::factory()->fixedAmount()->create([
         'max_uses' => 100,
         'is_active' => true,
@@ -125,15 +124,16 @@ it('can create a voucher', function () {
 
     $voucher = $service->create([
         'code' => 'TEST2024',
+        'name' => 'Test Voucher',
+        'description' => 'Test',
         'type' => 'percentage',
         'value' => 25,
-        'currency_code' => 'USD',
         'max_uses' => 100,
     ]);
 
     expect($voucher->code)->toBe('TEST2024');
     expect($voucher->type)->toBe('percentage');
-    expect($voucher->value)->toBe(25);
+    expect((float) $voucher->value)->toBe(25.0);
 });
 
 it('can update a voucher', function () {

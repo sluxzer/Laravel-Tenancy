@@ -18,8 +18,11 @@ class Plan extends Model
         'description',
         'price_monthly',
         'price_yearly',
+        'currency_code',
+        'trial_days',
         'features',
         'max_users',
+        'max_projects',
         'max_storage_mb',
         'is_active',
         'sort_order',
@@ -28,6 +31,11 @@ class Plan extends Model
     protected $casts = [
         'features' => 'array',
     ];
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
 
     public function subscriptions(): HasMany
     {

@@ -18,17 +18,19 @@ class Subscription extends Model
         'user_id',
         'plan_id',
         'status',
-        'starts_at',
-        'ends_at',
+        'billing_cycle',
+        'current_period_start',
+        'current_period_end',
         'trial_ends_at',
         'grace_period_ends_at',
         'cancelled_at',
+        'stripe_subscription_id',
         'metadata',
     ];
 
     protected $casts = [
-        'starts_at' => 'datetime',
-        'ends_at' => 'datetime',
+        'current_period_start' => 'datetime',
+        'current_period_end' => 'datetime',
         'trial_ends_at' => 'datetime',
         'grace_period_ends_at' => 'datetime',
         'cancelled_at' => 'datetime',

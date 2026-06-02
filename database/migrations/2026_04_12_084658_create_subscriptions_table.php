@@ -14,11 +14,13 @@ return new class extends Migration
             $table->foreignId('plan_id')->constrained()->onDelete('restrict');
             $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null');
             $table->string('status')->default('active'); // active, paused, cancelled, expired
-            $table->date('starts_at');
-            $table->date('ends_at');
-            $table->date('trial_ends_at')->nullable();
-            $table->date('cancelled_at')->nullable();
-            $table->date('grace_period_ends_at')->nullable();
+            $table->string('billing_cycle')->default('monthly'); // monthly, yearly
+            $table->dateTime('current_period_start');
+            $table->dateTime('current_period_end');
+            $table->dateTime('trial_ends_at')->nullable();
+            $table->dateTime('cancelled_at')->nullable();
+            $table->dateTime('grace_period_ends_at')->nullable();
+            $table->string('stripe_subscription_id')->nullable();
             $table->json('metadata')->nullable();
             $table->timestamps();
         });

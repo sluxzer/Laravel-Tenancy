@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class FeatureFlag extends Model
@@ -17,11 +18,13 @@ class FeatureFlag extends Model
         'key',
         'description',
         'is_enabled',
+        'is_public',
         'metadata',
     ];
 
     protected $casts = [
         'is_enabled' => 'boolean',
+        'is_public' => 'boolean',
         'metadata' => 'array',
     ];
 

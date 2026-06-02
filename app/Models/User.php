@@ -11,9 +11,10 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laratrust\Traits\HasRolesAndPermissions;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -22,7 +23,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, TwoFactorAuthenticatable, WithEagerLoading, WithQueryCache;
+    use HasApiTokens, HasFactory, Notifiable, TwoFactorAuthenticatable, WithEagerLoading, WithQueryCache, HasRolesAndPermissions;
 
     /**
      * Get the attributes that should be cast.
@@ -41,22 +42,6 @@ class User extends Authenticatable
     }
 
     /**
-     * Laratrust: User belongs to many roles.
-     */
-    public function roles(): BelongsToMany
-    {
-        return $this->belongsToMany(Role::class, 'role_user');
-    }
-
-    /**
-     * Laratrust: User belongs to many permissions.
-     */
-    public function permissions(): BelongsToMany
-    {
-        return $this->belongsToMany(Permission::class, 'permission_user');
-    }
-
-    /**
      * Laratrust: User belongs to a tenant.
      */
     public function tenant(): BelongsTo
@@ -65,57 +50,19 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user has a specific role.
+     * User has many subscriptions.
      */
-    public function hasRole(string|array $role): bool
+    public function subscriptions(): HasMany
     {
-        if (is_array($role)) {
-            return $this->roles()->whereIn('name', $role)->exists();
-        }
-
-        return $this->roles()->where('name', $role)->exists();
+        return $this->hasMany(Subscription::class);
     }
 
     /**
-     * Check if user has a specific permission.
+     * Alias for Laratrust's addRole to maintain compatibility with existing code.
      */
-    public function hasPermission(string $permission): bool
+    public function assignRole(string|array $role): self
     {
-        return $this->roles()
-            ->whereHas('permissions', fn ($q) => $q->where('name', $permission))
-            ->exists();
-    }
-
-    /**
-     * Assign a role to the user.
-     */
-    public function assignRole(string $role): self
-    {
-        $roleModel = Role::firstOrCreate(['name' => $role]);
-        $this->roles()->syncWithoutDetaching([$roleModel->id]);
-
-        return $this;
-    }
-
-    /**
-     * Remove a role from the user.
-     */
-    public function removeRole(string $role): self
-    {
-        $this->roles()->detach(
-            Role::where('name', $role)->pluck('id')
-        );
-
-        return $this;
-    }
-
-    /**
-     * Sync multiple roles for the user.
-     */
-    public function syncRoles(array $roles): self
-    {
-        $roleIds = Role::whereIn('name', $roles)->pluck('id');
-        $this->roles()->sync($roleIds);
+        $this->syncRolesWithoutDetaching((array) $role);
 
         return $this;
     }

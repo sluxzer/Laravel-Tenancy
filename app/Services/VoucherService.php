@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\Subscription;
+use App\Models\Tenant;
+use App\Models\User;
 use App\Models\Voucher;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -18,78 +20,98 @@ class VoucherService
     /**
      * Create a voucher.
      */
-    public function createVoucher(Tenant $tenant, array $data): Voucher
+    public function create(array $data): Voucher
     {
-        return Voucher::create([
-            'tenant_id' => $tenant->id,
-            'code' => $this->generateUniqueCode($tenant),
-            'name' => $data['name'],
-            'description' => $data['description'],
-            'type' => $data['type'] ?? 'percentage',
-            'value' => $data['value'],
-            'plan_id' => $data['plan_id'] ?? null,
-            'max_uses' => $data['max_uses'] ?? 1,
-            'used_count' => 0,
-            'expires_at' => $data['expires_at'] ? Carbon::parse($data['expires_at'])->toDateTimeString() : null,
-            'is_active' => true,
-        ]);
+        return Voucher::create($data);
+    }
+
+    /**
+     * Update a voucher.
+     */
+    public function update(Voucher $voucher, array $data): Voucher
+    {
+        $voucher->update($data);
+
+        return $voucher;
+    }
+
+    /**
+     * Delete a voucher.
+     */
+    public function delete(Voucher $voucher): void
+    {
+        $voucher->delete();
     }
 
     /**
      * Validate a voucher code.
      */
-    public function validateVoucher(string $code, Tenant $tenant): array
+    public function validate(string $code, User $user): array
     {
-        $voucher = Voucher::where('tenant_id', $tenant->id)
-            ->where('code', $code)
-            ->where('is_active', true)
-            ->first();
+        $voucher = Voucher::where('code', $code)->first();
 
         if (! $voucher) {
             return ['valid' => false, 'message' => 'Voucher not found.'];
         }
 
-        if (! $voucher->expires_at || Carbon::parse($voucher->expires_at)->isPast()) {
-            return ['valid' => false, 'message' => 'Voucher has expired.'];
+        if (! $voucher->is_active) {
+            return ['valid' => false, 'message' => 'Voucher is not active.'];
         }
 
         if ($voucher->max_uses && $voucher->used_count >= $voucher->max_uses) {
-            return ['valid' => false, 'message' => 'Voucher has reached maximum usage.'];
+            return ['valid' => false, 'message' => 'Voucher has reached maximum uses.'];
+        }
+
+        if ($voucher->valid_from && Carbon::parse($voucher->valid_from)->isFuture()) {
+            return ['valid' => false, 'message' => 'Voucher is not yet valid.'];
+        }
+
+        if ($voucher->valid_until && Carbon::parse($voucher->valid_until)->isPast()) {
+            return ['valid' => false, 'message' => 'Voucher has expired.'];
         }
 
         return ['valid' => true, 'message' => 'Voucher is valid.', 'voucher' => $voucher];
     }
 
     /**
-     * Apply voucher to subscription.
+     * Apply voucher to subscription amount.
      */
-    public function applyVoucher(Subscription $subscription, Voucher $voucher): Subscription
+    public function apply(string $code, User $user, float $amount): array
     {
-        $subscription->update([
-            'metadata' => array_merge($subscription->metadata ?? [], ['applied_voucher_id' => $voucher->id]),
-        ]);
+        $validation = $this->validate($code, $user);
 
-        return $subscription->fresh();
-    }
+        if (! $validation['valid']) {
+            return ['valid' => false, 'message' => $validation['message']];
+        }
 
-    /**
-     * Increment voucher usage.
-     */
-    public function incrementUsage(Voucher $voucher): Voucher
-    {
-        $voucher->increment('used_count');
+        $voucher = $validation['voucher'];
+        $discountAmount = 0;
 
-        return $voucher->fresh();
-    }
+        if ($voucher->type === 'percentage') {
+            $discountAmount = $amount * ($voucher->value / 100);
+            return [
+                'valid' => true,
+                'discount_amount' => $discountAmount,
+                'final_amount' => $amount - $discountAmount,
+            ];
+        }
 
-    /**
-     * Get active vouchers for tenant.
-     */
-    public function getActiveVouchers(Tenant $tenant): Collection
-    {
-        return Voucher::where('tenant_id', $tenant->id)
-            ->where('is_active', true)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        if ($voucher->type === 'fixed') {
+            $discountAmount = (float) $voucher->value;
+            return [
+                'valid' => true,
+                'discount_amount' => $discountAmount,
+                'final_amount' => $amount - $discountAmount,
+            ];
+        }
+
+        if ($voucher->type === 'free_trial') {
+            return [
+                'valid' => true,
+                'trial_days' => (int) $voucher->value,
+            ];
+        }
+
+        return ['valid' => false, 'message' => 'Invalid voucher type.'];
     }
 }
